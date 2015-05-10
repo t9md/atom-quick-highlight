@@ -16,7 +16,7 @@ See [discussion](https://discuss.atom.io/t/editor-marker-css/8616) here
 # How to use
 
 From command palette
-* invoke `quick-highlight:toggle` to toggle highlight of current word or selection.
+* invoke `quick-highlight:toggle` to toggle highlight.
 * invoke `quick-highlight:clear` to clear all highlight.
 
 Or set keymap for above commands for quicker access.
@@ -30,7 +30,6 @@ e.g.
 * general
 ```coffeescript
 'atom-workspace atom-text-editor:not([mini])':
-  'cmd-;': 'editor:toggle-line-comments'
   'cmd-k m': 'quick-highlight:toggle'
   'cmd-k M': 'quick-highlight:clear'
 ```

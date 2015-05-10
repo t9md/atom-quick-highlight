@@ -1,13 +1,6 @@
 {CompositeDisposable, Color} = require 'atom'
 
-# Config =
-#   invalidate:
-#     type: 'string'
-#     default: 'inside'
-#     enum: ['never', 'surround', 'overlap', 'inside', 'touch']
-
 module.exports =
-  config: Config
   decorations: {}
   colorIndex: 0
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
@@ -37,35 +30,34 @@ module.exports =
     if decorations
       # Clear existing highlight and then return.
       @destroyDecorations decorations
-      delete @decoration[editor.id][text]
+      delete @decorations[editor.id][text]
       return
 
     color = null
     editor.scan ///#{@escapeRegExp(text)}///g, ({range}) =>
-      color ?= @nextColor()
-      @highlight(editor, text, color, range)
+      @highlight(editor, text, color ?= @nextColor(), range)
 
   highlight: (editor, text, color, range) ->
-    options =
+    marker = editor.markBufferRange range,
       invalidate: 'inside'
       persistent: false
 
-    marker = editor.markBufferRange(range, options)
-    decoration = editor.decorateMarker(marker, type: 'highlight', class: "highlight-#{color}")
+    decoration = editor.decorateMarker marker,
+      type: 'highlight'
+      class: "quick-highlight highlight-#{color}"
+
     @decorations[editor.id] ?= {}
     @decorations[editor.id][text] ?= []
     @decorations[editor.id][text].push decoration
 
   nextColor: ->
-    @colorIndex = (@colorIndex + 1) % @colors.length
-    @colors[@colorIndex]
+    @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
 
   destroyDecoration: (decoration) ->
     decoration.getMarker().destroy()
 
   destroyDecorations: (decorations) ->
-    for decoration in decorations
-      @destroyDecoration decoration
+    @destroyDecoration decoration for decoration in decorations
 
   clear: ->
     return unless editor = @getEditor()

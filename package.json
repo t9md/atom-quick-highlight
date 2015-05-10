@@ -1,8 +1,8 @@
 {
   "name": "quick-highlight",
   "main": "./lib/main",
-  "version": "0.1.0",
-  "description": "Highlight selection quickly.",
+  "version": "0.0.0",
+  "description": "Highlight text quickly.",
   "activationCommands": {
     "atom-workspace": "quick-highlight:toggle"
   },
@@ -11,5 +11,6 @@
   "engines": {
     "atom": ">=0.174.0 <2.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+  }
 }
