@@ -1,3 +1,7 @@
+## 0.1.3 - Improve
+* Restore old cursorPosition.
+* Now highlight refreshed on TextEditor::onDidChange
+
 ## 0.1.2 - Box decoration support
 * Now user can choose 'highlight', 'box' for decoration preference.
 

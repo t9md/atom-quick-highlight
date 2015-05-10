@@ -47,9 +47,8 @@ Lot of todo.
 
 * [ ] highlight across visible buffer.
 * [ ] Wrap highlight with HTMLElement, to be able to use full color.
-* [ ] Or some configurable decoration style like outline, underline.
+* [x] Or some configurable decoration style like outline, underline.
 * [ ] Make color configurable.
 * [ ] Highlight with RegExp.
 * [ ] Serialize, deserialize
-* [ ] Show matched count on statusbar?
 * [ ] Show matched count on statusbar?
