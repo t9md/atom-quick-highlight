@@ -6,7 +6,7 @@ module.exports =
       type: 'string'
       default: "highlight"
       enum: ["highlight", "box"]
-      description: "how to decorate your highlight"
+      description: "How to decorate your highlight"
   decorations: {}
   colorIndex: -1
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
