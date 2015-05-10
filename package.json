@@ -1,0 +1,16 @@
+{
+  "name": "quick-highlight",
+  "main": "./lib/main",
+  "version": "0.0.0",
+  "description": "Highlight selection quickly.",
+  "activationCommands": {
+    "atom-workspace": "quick-highlight:toggle"
+  },
+  "repository": "https://github.com/t9md/atom-quick-highlight",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=0.174.0 <2.0.0"
+  },
+  "dependencies": {
+  }
+}
