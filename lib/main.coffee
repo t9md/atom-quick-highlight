@@ -1,10 +1,10 @@
 {CompositeDisposable, Color} = require 'atom'
 
-Config =
-  invalidate:
-    type: 'string'
-    default: 'inside'
-    enum: ['never', 'surround', 'overlap', 'inside', 'touch']
+# Config =
+#   invalidate:
+#     type: 'string'
+#     default: 'inside'
+#     enum: ['never', 'surround', 'overlap', 'inside', 'touch']
 
 module.exports =
   config: Config
