@@ -1,8 +1,14 @@
 {CompositeDisposable, Color} = require 'atom'
 
 module.exports =
+  config:
+    decorate:
+      type: 'string'
+      default: "highlight"
+      enum: ["highlight", "box"]
+      description: "how to decorate your highlight"
   decorations: {}
-  colorIndex: 0
+  colorIndex: -1
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
   activate: (state) ->
@@ -42,9 +48,10 @@ module.exports =
       invalidate: 'inside'
       persistent: false
 
+    decorationPreference = atom.config.get 'quick-highlight.decorate'
     decoration = editor.decorateMarker marker,
       type: 'highlight'
-      class: "quick-highlight highlight-#{color}"
+      class: "quick-highlight #{decorationPreference}-#{color}"
 
     @decorations[editor.id] ?= {}
     @decorations[editor.id][text] ?= []
