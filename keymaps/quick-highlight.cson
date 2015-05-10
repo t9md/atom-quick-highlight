@@ -1,5 +1,5 @@
 # For more detailed documentation see
 # https://atom.io/docs/latest/behind-atom-keymaps-in-depth
-'atom-text-editor.vim-mode.command-mode, atom-text-editor.vim-mode.visual-mode':
-  'space m': 'quick-highlight:toggle'
-  'space M': 'quick-highlight:clear'
+# 'atom-text-editor.vim-mode.command-mode, atom-text-editor.vim-mode.visual-mode':
+#   'space m': 'quick-highlight:toggle'
+#   'space M': 'quick-highlight:clear'
