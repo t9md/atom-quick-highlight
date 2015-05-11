@@ -45,9 +45,10 @@ e.g.
 # TODO
 Lot of todo.
 
-* [ ] highlight across visible buffer.
-* [ ] Wrap highlight with HTMLElement, to be able to use full color.
+* [x] auto highlight for newly added texts while editiong.
+* [x] highlight across visible buffer.
 * [x] Or some configurable decoration style like outline, underline.
+* [ ] Wrap highlight with HTMLElement, to be able to use full color.
 * [ ] Make color configurable.
 * [ ] Highlight with RegExp.
 * [ ] Serialize, deserialize

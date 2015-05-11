@@ -15,6 +15,13 @@ module.exports =
   #   description: 'How color refreshed'
 
   decorations: {}
+
+  # @highlights keep keyword to colorName pair.
+  # e.g.
+  #   @highlights =
+  #     text1: 'highlight-01'
+  #     text2: 'highlight-02'
+  highlights: {}
   colorIndex: -1
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
@@ -26,7 +33,11 @@ module.exports =
       # 'quick-highlight:refresh':  => @refresh(true)
 
     @disposables.add atom.workspace.observeTextEditors (editor) =>
-      @disposables.add editor.onDidChange @refresh.bind(@)
+      @disposables.add editor.onDidStopChanging @handleChanging(editor).bind(@)
+
+    @decorationPreference = atom.config.get 'quick-highlight.decorate'
+    @disposables.add atom.config.onDidChange 'quick-highlight.decorate', ({newValue}) =>
+      @decorationPreference = newValue
 
   deactivate: ->
     @disposables.dispose()
@@ -34,47 +45,89 @@ module.exports =
   serialize: ->
 
   toggle: ->
-    return unless editor = @getEditor()
+    return unless editor = @getActiveEditor()
     oldCursorPosition = editor.getCursorBufferPosition()
+    text = @getText editor
 
-    editor.selectWordsContainingCursors() if editor.getSelection().isEmpty()
-    text = editor.getSelectedText()
-    editor.getSelection().clear()
+    if @highlights[text]
+      # Already exists, remove!
+      @removeHighlight text
+    else
+      # New one.
+      @addHighlight text, @nextColor()
 
-    # Check existing highlight for text
-    if @decorations[editor.id]?[text]
-      # Clear existing highlight and then return.
-      @destroyDecorations @decorations[editor.id][text]['decorations']
-      delete @decorations[editor.id][text]
-      editor.setCursorBufferPosition oldCursorPosition
-      return
-
-    @highlightBuffer editor, text, @nextColor()
     editor.setCursorBufferPosition oldCursorPosition
 
-  refresh: () ->
-    return unless editor = @getEditor()
-    return unless @decorations[editor.id]
-    rule = @clear()
-    @highlightBuffer(editor, text, color) for text, color of rule
+  addHighlight: (text, color) ->
+    @highlights[text] = color
+    @refreshVisibleTextEditors()
+
+  removeHighlight: (text) ->
+    delete @highlights[text]
+    @refreshVisibleTextEditors()
+
+  isActiveEditor: (editor) ->
+    @getActiveEditor() is editor
+
+  handleChanging: (editor) ->
+    handler = ->
+      if @isActiveEditor(editor)
+        @refreshVisibleTextEditors(editor.getURI())
+    handler
+
+  refreshEditors: (editors) ->
+    @refreshEditor editor for editor in editors
+
+  refreshEditor: (editor) ->
+    @clearHighlights editor
+    @renderHighlights editor
+
+  refreshVisibleTextEditors: (URI) ->
+    editors = @getVisibleTextEditors()
+    if URI
+      editors = (editor for editor in editors when editor.getURI() is URI)
+    @refreshEditors editors
+
+  clearHighlights: (editor) ->
+    if decorations = @decorations[editor.id]
+      @destroyDecorations decorations
+    delete @decorations[editor.id]
+
+  renderHighlights: (editor) ->
+    for text, color of @highlights
+      @highlightBuffer editor, text, color
+
+  clear: ->
+    for editor in atom.workspace.getTextEditors()
+      @clearHighlights editor
+    @highlights = {}
+
+  # renderHighlightsVisibleRange: (editor) ->
+  #   [start, end] = editor.getVisibleRowRange()
+  #   range = [[start, 0], [end, 0]]
+  #   for text, color of @highlights
+  #     @highlightBufferRange editor, text, color, range
+
+  # highlightBufferRange: (editor, text, color, range) ->
+  #   editor.scanInBufferRange ///#{@escapeRegExp(text)}///g, range, ({range}) =>
+  #     @highlight editor, text, color, range
 
   highlightBuffer: (editor, text, color) ->
     editor.scan ///#{@escapeRegExp(text)}///g, ({range}) =>
-      @highlight(editor, text, color, range)
+      @highlight editor, text, color, range
+
 
   highlight: (editor, text, color, range) ->
     marker = editor.markBufferRange range,
       invalidate: 'inside'
       persistent: false
 
-    decorationPreference = atom.config.get 'quick-highlight.decorate'
     decoration = editor.decorateMarker marker,
       type: 'highlight'
-      class: "quick-highlight #{decorationPreference}-#{color}"
+      class: "quick-highlight #{@decorationPreference}-#{color}"
 
-    @decorations[editor.id] ?= {}
-    @decorations[editor.id][text] ?= color: color, decorations: []
-    @decorations[editor.id][text]['decorations'].push decoration
+    @decorations[editor.id] ?= []
+    @decorations[editor.id].push decoration
 
   nextColor: ->
     @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
@@ -85,23 +138,22 @@ module.exports =
   destroyDecorations: (decorations) ->
     @destroyDecoration decoration for decoration in decorations
 
-  # Clear all highlight and return original highlight rule
-  # highlight rule is {"text": color...}
-  # e.g.  {'text1': '01', 'text2': '02'}
-  clear: ->
-    return unless editor = @getEditor()
-    rule = {}
-    for own text, {color, decorations} of @decorations[editor.id]
-      rule[text] = color
-      @destroyDecorations decorations
-    delete @decorations[editor.id]
-    rule
-
   dump: ->
     console.log @decorations
 
-  getEditor: ->
+  getActiveEditor: ->
     atom.workspace.getActiveTextEditor()
+
+  getVisibleTextEditors: ->
+    panes = atom.workspace.getPanes()
+    (pane.getActiveEditor() for pane in panes when pane.getActiveEditor())
+
+  getText: (editor) ->
+    if editor.getSelection().isEmpty()
+      editor.selectWordsContainingCursors()
+    text = editor.getSelectedText()
+    editor.getSelection().clear()
+    text
 
   escapeRegExp: (string) ->
     string.replace /([.*+?^${}()|\[\]\/\\])/g, "\\$1"
