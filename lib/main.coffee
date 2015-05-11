@@ -1,19 +1,17 @@
-{CompositeDisposable, Color} = require 'atom'
+{TextEditor, CompositeDisposable, Color} = require 'atom'
+
+Config =
+  decorate:
+    type: 'string'
+    default: 'box'
+    enum: ['box', 'highlight']
+    description: "How to decorate your highlight"
 
 module.exports =
-  config:
-    decorate:
-      type: 'string'
-      default: "highlight"
-      enum: ["highlight", "box"]
-      description: "How to decorate your highlight"
+  config: Config
 
-  # refresh:
-  #   type: 'string'
-  #   default: "auto"
-  #   enum: ["auto", "none"]
-  #   description: 'How color refreshed'
-
+  # Keep list of decoration for each editor.
+  # Used for bulk destroy().
   decorations: {}
 
   # @highlights keep keyword to colorName pair.
@@ -22,6 +20,7 @@ module.exports =
   #     text1: 'highlight-01'
   #     text2: 'highlight-02'
   highlights: {}
+
   colorIndex: -1
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
@@ -30,10 +29,13 @@ module.exports =
     @disposables.add atom.commands.add 'atom-workspace',
       'quick-highlight:toggle': => @toggle()
       'quick-highlight:clear':  => @clear()
-      # 'quick-highlight:refresh':  => @refresh(true)
 
     @disposables.add atom.workspace.observeTextEditors (editor) =>
-      @disposables.add editor.onDidStopChanging @handleChanging(editor).bind(@)
+      @disposables.add editor.onDidStopChanging @handleChanging(editor)
+
+    @disposables.add atom.workspace.onDidChangeActivePaneItem (item) =>
+      if item instanceof TextEditor
+        @refreshEditor item
 
     @decorationPreference = atom.config.get 'quick-highlight.decorate'
     @disposables.add atom.config.onDidChange 'quick-highlight.decorate', ({newValue}) =>
@@ -47,13 +49,14 @@ module.exports =
   toggle: ->
     return unless editor = @getActiveEditor()
     oldCursorPosition = editor.getCursorBufferPosition()
+
     text = @getText editor
 
     if @highlights[text]
       # Already exists, remove!
       @removeHighlight text
     else
-      # New one.
+      # New
       @addHighlight text, @nextColor()
 
     editor.setCursorBufferPosition oldCursorPosition
@@ -70,13 +73,13 @@ module.exports =
     @getActiveEditor() is editor
 
   handleChanging: (editor) ->
-    handler = ->
-      if @isActiveEditor(editor)
-        @refreshVisibleTextEditors(editor.getURI())
-    handler
+    =>
+      if @isActiveEditor editor
+        @refreshVisibleTextEditors editor.getURI()
 
   refreshEditors: (editors) ->
-    @refreshEditor editor for editor in editors
+    for editor in editors
+      @refreshEditor editor
 
   refreshEditor: (editor) ->
     @clearHighlights editor
@@ -85,7 +88,7 @@ module.exports =
   refreshVisibleTextEditors: (URI) ->
     editors = @getVisibleTextEditors()
     if URI
-      editors = (editor for editor in editors when editor.getURI() is URI)
+      editors = editors.filter (editor) -> editor.getURI() is URI
     @refreshEditors editors
 
   clearHighlights: (editor) ->
@@ -102,20 +105,9 @@ module.exports =
       @clearHighlights editor
     @highlights = {}
 
-  # renderHighlightsVisibleRange: (editor) ->
-  #   [start, end] = editor.getVisibleRowRange()
-  #   range = [[start, 0], [end, 0]]
-  #   for text, color of @highlights
-  #     @highlightBufferRange editor, text, color, range
-
-  # highlightBufferRange: (editor, text, color, range) ->
-  #   editor.scanInBufferRange ///#{@escapeRegExp(text)}///g, range, ({range}) =>
-  #     @highlight editor, text, color, range
-
   highlightBuffer: (editor, text, color) ->
     editor.scan ///#{@escapeRegExp(text)}///g, ({range}) =>
       @highlight editor, text, color, range
-
 
   highlight: (editor, text, color, range) ->
     marker = editor.markBufferRange range,
@@ -136,17 +128,16 @@ module.exports =
     decoration.getMarker().destroy()
 
   destroyDecorations: (decorations) ->
-    @destroyDecoration decoration for decoration in decorations
-
-  dump: ->
-    console.log @decorations
+    for decoration in decorations
+      @destroyDecoration decoration
 
   getActiveEditor: ->
     atom.workspace.getActiveTextEditor()
 
   getVisibleTextEditors: ->
-    panes = atom.workspace.getPanes()
-    (pane.getActiveEditor() for pane in panes when pane.getActiveEditor())
+    atom.workspace.getPanes()
+      .map    (pane) -> pane.getActiveEditor()
+      .filter (pane) -> pane?
 
   getText: (editor) ->
     if editor.getSelection().isEmpty()

@@ -1,4 +1,7 @@
 ## 0.1.3 - Improve
+* Now `box` is default for config `quick-highlight.decorate`.
+* Refactoring
+* Refresh on Pane become active(=onDidChangeActivePaneItem()).
 * Restore old cursorPosition.
 * Now highlight refreshed on TextEditor::onDidChange
 

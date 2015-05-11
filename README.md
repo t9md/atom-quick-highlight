@@ -45,11 +45,13 @@ e.g.
 # TODO
 Lot of todo.
 
+* [ ] Refresh only added/deleted decoration for performance.
+
+* [ ] Make color configurable.
+* [ ] Serialize, deserialize
+* [ ] Highlight with RegExp.
+* [ ] Show matched count on statusbar?
+* [ ] Wrap highlight with HTMLElement, to be able to use full color.
 * [x] auto highlight for newly added texts while editiong.
 * [x] highlight across visible buffer.
 * [x] Or some configurable decoration style like outline, underline.
-* [ ] Wrap highlight with HTMLElement, to be able to use full color.
-* [ ] Make color configurable.
-* [ ] Highlight with RegExp.
-* [ ] Serialize, deserialize
-* [ ] Show matched count on statusbar?
