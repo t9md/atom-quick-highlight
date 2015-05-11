@@ -4,10 +4,6 @@ Quickly highlight selected text or current word.
 
 ![gif](https://raw.githubusercontent.com/t9md/t9md/3b13d5fb6134b0b393e0a18b27bdd9c7b4350ace/img/atom-quick-highlight.gif)
 
-# Development stage
-
-Currently feature is very limited, but I publish this even if limited, I think this still useful for others.
-
 # Limitation
 
 * Currently, color must be transparent, it need some work.
