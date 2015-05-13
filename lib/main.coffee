@@ -1,4 +1,5 @@
-{TextEditor, CompositeDisposable, Color} = require 'atom'
+{TextEditor, CompositeDisposable} = require 'atom'
+_ = require 'underscore-plus'
 
 Config =
   decorate:
@@ -53,21 +54,23 @@ module.exports =
     text = @getText editor
 
     if @highlights[text]
-      # Already exists, remove!
       @removeHighlight text
     else
-      # New
       @addHighlight text, @nextColor()
 
+    # Restore original cursor position
     editor.setCursorBufferPosition oldCursorPosition
 
   addHighlight: (text, color) ->
     @highlights[text] = color
-    @refreshVisibleTextEditors()
+    for editor in @getVisibleTextEditors()
+      @highlightEditor editor, text, color
 
   removeHighlight: (text) ->
+    for editor in @getVisibleTextEditors()
+      if decorations = @decorations[editor.id]?[text]
+        @destroyDecorations decorations
     delete @highlights[text]
-    @refreshVisibleTextEditors()
 
   isActiveEditor: (editor) ->
     @getActiveEditor() is editor
@@ -75,37 +78,31 @@ module.exports =
   handleChanging: (editor) ->
     =>
       if @isActiveEditor editor
-        @refreshVisibleTextEditors editor.getURI()
+        @refreshEditors @getVisibleTextEditors(editor.getURI())
 
   refreshEditors: (editors) ->
-    for editor in editors
-      @refreshEditor editor
+    @refreshEditor editor for editor in editors
 
   refreshEditor: (editor) ->
     @clearHighlights editor
     @renderHighlights editor
 
-  refreshVisibleTextEditors: (URI) ->
-    editors = @getVisibleTextEditors()
-    if URI
-      editors = editors.filter (editor) -> editor.getURI() is URI
-    @refreshEditors editors
-
   clearHighlights: (editor) ->
     if decorations = @decorations[editor.id]
-      @destroyDecorations decorations
+      @destroyDecorations _.chain(decorations).values().flatten().value()
     delete @decorations[editor.id]
 
   renderHighlights: (editor) ->
     for text, color of @highlights
-      @highlightBuffer editor, text, color
+      @highlightEditor editor, text, color
 
   clear: ->
     for editor in atom.workspace.getTextEditors()
       @clearHighlights editor
     @highlights = {}
+    @decorations = {}
 
-  highlightBuffer: (editor, text, color) ->
+  highlightEditor: (editor, text, color) ->
     editor.scan ///#{@escapeRegExp(text)}///g, ({range}) =>
       @highlight editor, text, color, range
 
@@ -118,8 +115,9 @@ module.exports =
       type: 'highlight'
       class: "quick-highlight #{@decorationPreference}-#{color}"
 
-    @decorations[editor.id] ?= []
-    @decorations[editor.id].push decoration
+    @decorations[editor.id] ?= {}
+    @decorations[editor.id][text] ?= []
+    @decorations[editor.id][text].push decoration
 
   nextColor: ->
     @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
@@ -134,10 +132,14 @@ module.exports =
   getActiveEditor: ->
     atom.workspace.getActiveTextEditor()
 
-  getVisibleTextEditors: ->
-    atom.workspace.getPanes()
-      .map    (pane) -> pane.getActiveEditor()
-      .filter (pane) -> pane?
+  getVisibleTextEditors: (URI) ->
+    editors = atom.workspace.getPanes()
+      .map    (pane)   -> pane.getActiveEditor()
+      .filter (editor) -> editor?
+
+    if URI
+      editors = editors.filter (editor) -> editor.getURI() is URI
+    editors
 
   getText: (editor) ->
     if editor.getSelection().isEmpty()

@@ -41,7 +41,7 @@ e.g.
 # TODO
 Lot of todo.
 
-* [ ] Refresh only added/deleted decoration for performance.
+* [x] Refresh only added/deleted decoration for performance.
 
 * [ ] Make color configurable.
 * [ ] Serialize, deserialize
