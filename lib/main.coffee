@@ -47,12 +47,33 @@ module.exports =
 
   serialize: ->
 
+  getActiveEditor: ->
+    atom.workspace.getActiveTextEditor()
+
+  isActiveEditor: (editor) ->
+    @getActiveEditor() is editor
+
+  getVisibleTextEditors: (URI) ->
+    editors = atom.workspace.getPanes()
+      .map    (pane)   -> pane.getActiveEditor()
+      .filter (editor) -> editor?
+
+    if URI
+      editors = editors.filter (editor) -> editor.getURI() is URI
+    editors
+
+  handleChanging: (editor) ->
+    =>
+      if @isActiveEditor editor
+        @refreshEditors @getVisibleTextEditors(editor.getURI())
+
   toggle: ->
     return unless editor = @getActiveEditor()
+
+    # Save original cursor position.
     oldCursorPosition = editor.getCursorBufferPosition()
 
     text = @getText editor
-
     if @highlights[text]
       @removeHighlight text
     else
@@ -61,24 +82,23 @@ module.exports =
     # Restore original cursor position
     editor.setCursorBufferPosition oldCursorPosition
 
+  clear: ->
+    for editor in atom.workspace.getTextEditors()
+      @clearHighlights editor
+    @highlights = {}
+    @decorations = {}
+
   addHighlight: (text, color) ->
-    @highlights[text] = color
     for editor in @getVisibleTextEditors()
       @highlightEditor editor, text, color
+    @highlights[text] = color
 
   removeHighlight: (text) ->
     for editor in @getVisibleTextEditors()
       if decorations = @decorations[editor.id]?[text]
         @destroyDecorations decorations
+        delete @decorations[editor.id][text]
     delete @highlights[text]
-
-  isActiveEditor: (editor) ->
-    @getActiveEditor() is editor
-
-  handleChanging: (editor) ->
-    =>
-      if @isActiveEditor editor
-        @refreshEditors @getVisibleTextEditors(editor.getURI())
 
   refreshEditors: (editors) ->
     @refreshEditor editor for editor in editors
@@ -87,20 +107,14 @@ module.exports =
     @clearHighlights editor
     @renderHighlights editor
 
-  clearHighlights: (editor) ->
-    if decorations = @decorations[editor.id]
-      @destroyDecorations _.chain(decorations).values().flatten().value()
-    delete @decorations[editor.id]
-
   renderHighlights: (editor) ->
     for text, color of @highlights
       @highlightEditor editor, text, color
 
-  clear: ->
-    for editor in atom.workspace.getTextEditors()
-      @clearHighlights editor
-    @highlights = {}
-    @decorations = {}
+  clearHighlights: (editor) ->
+    if decorations = @decorations[editor.id]
+      @destroyDecorations _.chain(decorations).values().flatten().value()
+    delete @decorations[editor.id]
 
   highlightEditor: (editor, text, color) ->
     editor.scan ///#{@escapeRegExp(text)}///g, ({range}) =>
@@ -119,27 +133,19 @@ module.exports =
     @decorations[editor.id][text] ?= []
     @decorations[editor.id][text].push decoration
 
-  nextColor: ->
-    @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
-
-  destroyDecoration: (decoration) ->
-    decoration.getMarker().destroy()
-
   destroyDecorations: (decorations) ->
     for decoration in decorations
       @destroyDecoration decoration
 
-  getActiveEditor: ->
-    atom.workspace.getActiveTextEditor()
+  destroyDecoration: (decoration) ->
+    decoration.getMarker().destroy()
 
-  getVisibleTextEditors: (URI) ->
-    editors = atom.workspace.getPanes()
-      .map    (pane)   -> pane.getActiveEditor()
-      .filter (editor) -> editor?
+  nextColor: ->
+    @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
 
-    if URI
-      editors = editors.filter (editor) -> editor.getURI() is URI
-    editors
+  ###
+  Section: Utility methods
+  ###
 
   getText: (editor) ->
     if editor.getSelection().isEmpty()

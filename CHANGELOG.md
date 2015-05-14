@@ -1,3 +1,6 @@
+## 0.1.5 - Improve
+* Clean up
+
 ## 0.1.3 - Improve
 * Now `box` is default for config `quick-highlight.decorate`.
 * Refactoring

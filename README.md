@@ -4,11 +4,6 @@ Quickly highlight selected text or current word.
 
 ![gif](https://raw.githubusercontent.com/t9md/t9md/3b13d5fb6134b0b393e0a18b27bdd9c7b4350ace/img/atom-quick-highlight.gif)
 
-# Limitation
-
-* Currently, color must be transparent, it need some work.
-See [discussion](https://discuss.atom.io/t/editor-marker-css/8616) here
-
 # How to use
 
 From command palette
@@ -37,17 +32,21 @@ e.g.
   'space M': 'quick-highlight:clear'
 ```
 
-
 # TODO
 Lot of todo.
 
-* [x] Refresh only added/deleted decoration for performance.
-
+* [ ] Improve default to dynamically change using [color-channel](http://lesscss.org/functions/#color-channel)?
 * [ ] Make color configurable.
 * [ ] Serialize, deserialize
 * [ ] Highlight with RegExp.
 * [ ] Show matched count on statusbar?
 * [ ] Wrap highlight with HTMLElement, to be able to use full color.
+* [x] Refresh only added/deleted decoration for performance.
 * [x] auto highlight for newly added texts while editiong.
 * [x] highlight across visible buffer.
 * [x] Or some configurable decoration style like outline, underline.
+
+# Limitation
+
+* Currently, color must be transparent, it need some work.
+See [discussion](https://discuss.atom.io/t/editor-marker-css/8616) here
