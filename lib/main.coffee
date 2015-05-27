@@ -148,10 +148,10 @@ module.exports =
   ###
 
   getText: (editor) ->
-    if editor.getSelection().isEmpty()
+    if editor.getLastSelection().isEmpty()
       editor.selectWordsContainingCursors()
     text = editor.getSelectedText()
-    editor.getSelection().clear()
+    editor.getLastSelection().clear()
     text
 
   escapeRegExp: (string) ->

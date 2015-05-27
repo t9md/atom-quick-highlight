@@ -1,3 +1,6 @@
+## 0.1.6 - Fix deprecated API, atom/atom#6867
+* Use TextEditor::getLastSelection() instead of getSelection()
+
 ## 0.1.5 - Improve
 * Clean up
 
