@@ -1,3 +1,8 @@
+## 0.1.7 - Refactoring
+* Clear editor subscriptions.
+* Refactoring
+* Remove unused keymap directory
+
 ## 0.1.6 - Fix deprecated API, atom/atom#6867
 * Use TextEditor::getLastSelection() instead of getSelection()
 

@@ -10,6 +10,8 @@ Config =
 
 module.exports =
   config: Config
+  subscriptions: null
+  editorSubscriptions: null
 
   # Keep list of decoration for each editor.
   # Used for bulk destroy().
@@ -22,53 +24,70 @@ module.exports =
   #     text2: 'highlight-02'
   highlights: {}
 
-  colorIndex: -1
+  colorIndex: null
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
   activate: (state) ->
-    @disposables = new CompositeDisposable
-    @disposables.add atom.commands.add 'atom-workspace',
+    @editorSubscriptions = {}
+    @subscriptions = new CompositeDisposable
+
+    @subscriptions.add atom.commands.add 'atom-workspace',
       'quick-highlight:toggle': => @toggle()
       'quick-highlight:clear':  => @clear()
 
-    @disposables.add atom.workspace.observeTextEditors (editor) =>
-      @disposables.add editor.onDidStopChanging @handleChanging(editor)
+    @subscriptions.add @observeTextEditors()
+    @subscriptions.add @onDidChangeActivePaneItem()
 
-    @disposables.add atom.workspace.onDidChangeActivePaneItem (item) =>
+    @decorationPreference = atom.config.get 'quick-highlight.decorate'
+    @subscriptions.add atom.config.onDidChange 'quick-highlight.decorate', ({newValue}) =>
+      @decorationPreference = newValue
+
+  onDidChangeActivePaneItem: ->
+    atom.workspace.onDidChangeActivePaneItem (item) =>
       if item instanceof TextEditor
         @refreshEditor item
 
-    @decorationPreference = atom.config.get 'quick-highlight.decorate'
-    @disposables.add atom.config.onDidChange 'quick-highlight.decorate', ({newValue}) =>
-      @decorationPreference = newValue
+  observeTextEditors: ->
+    onDidDestroy = (editor) =>
+      editor.onDidDestroy =>
+        @clearHighlights editor
+        @editorSubscriptions[editor.id]?.dispose()
+        delete @editorSubscriptions[editor.id]
+
+    onDidStopChanging = (editor) =>
+      editor.onDidStopChanging =>
+        return unless editor is @getEditor() # is ActiveEditor?
+        for _editor in @getVisibleEditor(editor.getURI())
+          @refreshEditor _editor
+
+    atom.workspace.observeTextEditors (editor) =>
+      @editorSubscriptions[editor.id] = new CompositeDisposable
+      @editorSubscriptions[editor.id].add onDidStopChanging(editor)
+      @editorSubscriptions[editor.id].add onDidDestroy(editor)
 
   deactivate: ->
-    @disposables.dispose()
+    @clear()
+    for editorID, disposables of @editorSubscriptions
+      disposables.dispose()
+    @editorSubscriptions = null
+    @subscriptions.dispose()
+    @subscriptions = null
 
-  serialize: ->
-
-  getActiveEditor: ->
+  getEditor: ->
     atom.workspace.getActiveTextEditor()
 
-  isActiveEditor: (editor) ->
-    @getActiveEditor() is editor
-
-  getVisibleTextEditors: (URI) ->
+  getVisibleEditor: (URI) ->
     editors = atom.workspace.getPanes()
       .map    (pane)   -> pane.getActiveEditor()
       .filter (editor) -> editor?
 
     if URI
-      editors = editors.filter (editor) -> editor.getURI() is URI
+      editors = editors.filter (editor) ->
+        editor.getURI() is URI
     editors
 
-  handleChanging: (editor) ->
-    =>
-      if @isActiveEditor editor
-        @refreshEditors @getVisibleTextEditors(editor.getURI())
-
   toggle: ->
-    return unless editor = @getActiveEditor()
+    return unless editor = @getEditor()
 
     # Save original cursor position.
     oldCursorPosition = editor.getCursorBufferPosition()
@@ -77,31 +96,29 @@ module.exports =
     if @highlights[text]
       @removeHighlight text
     else
-      @addHighlight text, @nextColor()
+      @addHighlight text, @getNextColor()
 
     # Restore original cursor position
     editor.setCursorBufferPosition oldCursorPosition
 
   clear: ->
-    for editor in atom.workspace.getTextEditors()
-      @clearHighlights editor
+    for editorID of @decorations
+      @clearHighlights editorID
     @highlights = {}
     @decorations = {}
+    @colorIndex = null
 
   addHighlight: (text, color) ->
-    for editor in @getVisibleTextEditors()
+    for editor in @getVisibleEditor()
       @highlightEditor editor, text, color
     @highlights[text] = color
 
   removeHighlight: (text) ->
-    for editor in @getVisibleTextEditors()
+    for editor in @getVisibleEditor()
       if decorations = @decorations[editor.id]?[text]
         @destroyDecorations decorations
         delete @decorations[editor.id][text]
     delete @highlights[text]
-
-  refreshEditors: (editors) ->
-    @refreshEditor editor for editor in editors
 
   refreshEditor: (editor) ->
     @clearHighlights editor
@@ -111,9 +128,12 @@ module.exports =
     for text, color of @highlights
       @highlightEditor editor, text, color
 
+  # editor is TextEditor or TextEditor's ID.
   clearHighlights: (editor) ->
-    if decorations = @decorations[editor.id]
-      @destroyDecorations _.chain(decorations).values().flatten().value()
+    editorID = if (editor instanceof TextEditor) then editor.id else editor
+    if text2decorations = @decorations[editorID]
+      for text, decorations of text2decorations
+        @destroyDecorations decorations
     delete @decorations[editor.id]
 
   highlightEditor: (editor, text, color) ->
@@ -135,10 +155,8 @@ module.exports =
 
   destroyDecorations: (decorations) ->
     for decoration in decorations
-      @destroyDecoration decoration
+      decoration.getMarker().destroy()
 
-  destroyDecoration: (decoration) ->
-    decoration.getMarker().destroy()
-
-  nextColor: ->
+  getNextColor: ->
+    @colorIndex ?= -1
     @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
