@@ -73,7 +73,7 @@ module.exports =
     # Save original cursor position.
     oldCursorPosition = editor.getCursorBufferPosition()
 
-    text = @getText editor
+    text = editor.getSelectedText() or editor.getWordUnderCursor()
     if @highlights[text]
       @removeHighlight text
     else
@@ -117,7 +117,7 @@ module.exports =
     delete @decorations[editor.id]
 
   highlightEditor: (editor, text, color) ->
-    editor.scan ///#{@escapeRegExp(text)}///g, ({range}) =>
+    editor.scan ///#{_.escapeRegExp(text)}///g, ({range}) =>
       @highlight editor, text, color, range
 
   highlight: (editor, text, color, range) ->
@@ -142,17 +142,3 @@ module.exports =
 
   nextColor: ->
     @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
-
-  ###
-  Section: Utility methods
-  ###
-
-  getText: (editor) ->
-    if editor.getLastSelection().isEmpty()
-      editor.selectWordsContainingCursors()
-    text = editor.getSelectedText()
-    editor.getLastSelection().clear()
-    text
-
-  escapeRegExp: (string) ->
-    string.replace /([.*+?^${}()|\[\]\/\\])/g, "\\$1"
