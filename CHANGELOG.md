@@ -1,3 +1,6 @@
+## 0.1.9 - Improve
+* Doc update.
+
 ## 0.1.8 - StatusBar update.
 * Now display found count on StatusBar.
 

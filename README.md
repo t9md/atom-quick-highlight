@@ -37,7 +37,7 @@ e.g.
 
 # Display found count on StatusBar
 
-By default, when you add new text with `quick-highlight:toggle`, found count is displayed on StatusBar.  
+By default, when you highlight new text with `quick-highlight:toggle`, found count is displayed on StatusBar.  
 You can configure CSS class to use with `countDisplayStyles`.  
 See. `styleguide:show` for available style classes.  
 
