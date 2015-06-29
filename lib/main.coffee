@@ -1,5 +1,6 @@
-{TextEditor, CompositeDisposable} = require 'atom'
+{TextEditor, CompositeDisposable, Disposable} = require 'atom'
 _ = require 'underscore-plus'
+StatusBarManager = require './status-bar-manager'
 
 Config =
   decorate:
@@ -23,21 +24,17 @@ Config =
     type: 'integer'
     default: 120
     description: "Lower priority get closer position to the edges of the window"
-  countDisplayPlaceHolder:
+  countDisplayStyles:
     order: 14
     type: 'string'
-    default: '<QH: __COUNT__>'
-    description: "Used to display count on StatusBar"
+    default: 'badge icon icon-location'
+    description: "Style class for count span element. See `styleguide:show`."
 
 module.exports =
   config: Config
   subscriptions: null
   editorSubscriptions: null
-
-  element: null
-  container: null
-  tile: null
-  statusBar: null
+  statusBarManager: null
 
   # Keep list of decoration for each editor.
   # Used for bulk destroy().
@@ -56,6 +53,8 @@ module.exports =
   activate: (state) ->
     @editorSubscriptions = {}
     @subscriptions = new CompositeDisposable
+    if atom.config.get 'quick-highlight.displayCountOnStatusBar'
+      @statusBarManager = new StatusBarManager
 
     @subscriptions.add atom.commands.add 'atom-workspace',
       'quick-highlight:toggle': => @toggle()
@@ -70,11 +69,9 @@ module.exports =
 
   onDidChangeActivePaneItem: ->
     atom.workspace.onDidChangeActivePaneItem (item) =>
+      @statusBarManager?.update()
       if item instanceof TextEditor
         @refreshEditor item
-        @updateStatusBar ''
-      else
-        @updateStatusBar ''
 
   observeTextEditors: ->
     onDidDestroy = (editor) =>
@@ -86,7 +83,7 @@ module.exports =
     onDidStopChanging = (editor) =>
       editor.onDidStopChanging =>
         return unless editor is @getEditor() # is ActiveEditor?
-        @updateStatusBar ''
+        @statusBarManager?.update()
         for _editor in @getVisibleEditor(editor.getURI())
           @refreshEditor _editor
 
@@ -102,8 +99,6 @@ module.exports =
     @editorSubscriptions = null
     @subscriptions.dispose()
     @subscriptions = null
-    @tile?.destroy()
-    [@tile, @container, @element, @statusBar] = []
 
   getEditor: ->
     atom.workspace.getActiveTextEditor()
@@ -125,16 +120,16 @@ module.exports =
     oldCursorPosition = editor.getCursorBufferPosition()
 
     text = editor.getSelectedText() or editor.getWordUnderCursor()
+    count = null
+
     if @highlights[text]
       @removeHighlight text
-      @updateStatusBar ''
     else
       @addHighlight text, @getNextColor()
-      count = @decorations[editor.id][text].length
-      if @tile?
-        countDisplayPlaceHolder = atom.config.get('quick-highlight.countDisplayPlaceHolder')
-        @updateStatusBar countDisplayPlaceHolder.replace('__COUNT__', count)
+      if @statusBarManager?
+        count = @decorations[editor.id][text].length
 
+    @statusBarManager?.update count
 
     # Restore original cursor position
     editor.setCursorBufferPosition oldCursorPosition
@@ -145,6 +140,7 @@ module.exports =
     @highlights = {}
     @decorations = {}
     @colorIndex = null
+    @statusBarManager?.update()
 
   addHighlight: (text, color) ->
     for editor in @getVisibleEditor()
@@ -199,21 +195,9 @@ module.exports =
     @colorIndex ?= -1
     @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
 
-  updateStatusBar: (content) ->
-    @element?.textContent = content
-
-  consumeStatusBar: (@statusBar) ->
-    unless atom.config.get 'quick-highlight.displayCountOnStatusBar'
-      return
-
-    @element = document.createElement('div')
-    @element.id = 'status-bar-quick-highlight'
-    @container = document.createElement('div')
-    @container.className = 'inline-block'
-    @container.appendChild @element
-
-    displayPosition = atom.config.get 'quick-highlight.countDisplayPosition'
-    displayPriority = atom.config.get('quick-highlight.countDisplayPriority')
-    @tile = @statusBar["add#{displayPosition}Tile"]
-      item: @container
-      priority: displayPriority
+  consumeStatusBar: (statusBar) ->
+    return unless @statusBarManager?
+    @statusBarManager.initialize(statusBar)
+    @statusBarManager.attach()
+    @subscriptions.add new Disposable =>
+      @statusBarManager.detach()

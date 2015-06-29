@@ -1,3 +1,6 @@
+## 0.1.8 - StatusBar update.
+* Now display cound count on StatusBar.
+
 ## 0.1.7 - Refactoring
 * Clear editor subscriptions.
 * Refactoring

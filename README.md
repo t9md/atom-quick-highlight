@@ -32,14 +32,25 @@ e.g.
   'space M': 'quick-highlight:clear'
 ```
 
+# Display found count on StatusBar
+
+By default, when you add new text with `quick-highlight:toggle`, found count is displayed on StatusBar.  
+You can configure CSS class to use with `countDisplayStyles`.  
+See. `styleguide:show` for available style classes.  
+
+e.g.
+- Default: `badge icon icon-location`
+- Case-1: `badge badge-error icon icon-bookmark`
+- Case-2: `badge badge-success icon icon-light-bulb`
+- Case-3: `btn btn-primary selected inline-block-tight`
+
 # TODO
-Lot of todo.
 
 * [ ] Improve default to dynamically change using [color-channel](http://lesscss.org/functions/#color-channel)?
 * [ ] Make color configurable.
 * [ ] Serialize, deserialize
 * [ ] Highlight with RegExp.
-* [ ] Show matched count on statusbar?
+* [x] Show matched count on statusbar?
 * [ ] Wrap highlight with HTMLElement, to be able to use full color.
 * [x] Refresh only added/deleted decoration for performance.
 * [x] auto highlight for newly added texts while editiong.
