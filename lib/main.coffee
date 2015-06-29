@@ -3,15 +3,41 @@ _ = require 'underscore-plus'
 
 Config =
   decorate:
+    order: 1
     type: 'string'
     default: 'box'
     enum: ['box', 'highlight']
     description: "How to decorate your highlight"
+  displayCountOnStatusBar:
+    order: 11
+    type: 'boolean'
+    default: true
+    description: "Show found count on StatusBar on highlight"
+  countDisplayPosition:
+    order: 12
+    type: 'string'
+    default: 'Left'
+    enum: ['Left', 'Right']
+  countDisplayPriority:
+    order: 13
+    type: 'integer'
+    default: 120
+    description: "Lower priority get closer position to the edges of the window"
+  countDisplayPlaceHolder:
+    order: 14
+    type: 'string'
+    default: '<QH: __COUNT__>'
+    description: "Used to display count on StatusBar"
 
 module.exports =
   config: Config
   subscriptions: null
   editorSubscriptions: null
+
+  element: null
+  container: null
+  tile: null
+  statusBar: null
 
   # Keep list of decoration for each editor.
   # Used for bulk destroy().
@@ -46,6 +72,9 @@ module.exports =
     atom.workspace.onDidChangeActivePaneItem (item) =>
       if item instanceof TextEditor
         @refreshEditor item
+        @updateStatusBar ''
+      else
+        @updateStatusBar ''
 
   observeTextEditors: ->
     onDidDestroy = (editor) =>
@@ -57,6 +86,7 @@ module.exports =
     onDidStopChanging = (editor) =>
       editor.onDidStopChanging =>
         return unless editor is @getEditor() # is ActiveEditor?
+        @updateStatusBar ''
         for _editor in @getVisibleEditor(editor.getURI())
           @refreshEditor _editor
 
@@ -67,11 +97,13 @@ module.exports =
 
   deactivate: ->
     @clear()
-    for editorID, disposables of @editorSubscriptions
-      disposables.dispose()
+    for editorID, subscriptions of @editorSubscriptions
+      subscriptions.dispose()
     @editorSubscriptions = null
     @subscriptions.dispose()
     @subscriptions = null
+    @tile?.destroy()
+    [@tile, @container, @element, @statusBar] = []
 
   getEditor: ->
     atom.workspace.getActiveTextEditor()
@@ -95,8 +127,14 @@ module.exports =
     text = editor.getSelectedText() or editor.getWordUnderCursor()
     if @highlights[text]
       @removeHighlight text
+      @updateStatusBar ''
     else
       @addHighlight text, @getNextColor()
+      count = @decorations[editor.id][text].length
+      if @tile?
+        countDisplayPlaceHolder = atom.config.get('quick-highlight.countDisplayPlaceHolder')
+        @updateStatusBar countDisplayPlaceHolder.replace('__COUNT__', count)
+
 
     # Restore original cursor position
     editor.setCursorBufferPosition oldCursorPosition
@@ -160,3 +198,22 @@ module.exports =
   getNextColor: ->
     @colorIndex ?= -1
     @colors[@colorIndex = (@colorIndex + 1) % @colors.length]
+
+  updateStatusBar: (content) ->
+    @element?.textContent = content
+
+  consumeStatusBar: (@statusBar) ->
+    unless atom.config.get 'quick-highlight.displayCountOnStatusBar'
+      return
+
+    @element = document.createElement('div')
+    @element.id = 'status-bar-quick-highlight'
+    @container = document.createElement('div')
+    @container.className = 'inline-block'
+    @container.appendChild @element
+
+    displayPosition = atom.config.get 'quick-highlight.countDisplayPosition'
+    displayPriority = atom.config.get('quick-highlight.countDisplayPriority')
+    @tile = @statusBar["add#{displayPosition}Tile"]
+      item: @container
+      priority: displayPriority
