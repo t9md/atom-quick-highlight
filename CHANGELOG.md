@@ -1,5 +1,5 @@
 ## 0.1.8 - StatusBar update.
-* Now display cound count on StatusBar.
+* Now display found count on StatusBar.
 
 ## 0.1.7 - Refactoring
 * Clear editor subscriptions.
