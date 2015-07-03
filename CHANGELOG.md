@@ -1,3 +1,6 @@
+## 0.1.10 - Improve
+* [FIX] box color broken in TILE border.
+
 ## 0.1.9 - Improve
 * Doc update.
 

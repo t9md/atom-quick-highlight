@@ -53,6 +53,7 @@ e.g.
 * [ ] Make color configurable.
 * [ ] Serialize, deserialize
 * [ ] Highlight with RegExp.
+* [ ] Improve default color.
 * [x] Show matched count on statusbar?
 * [ ] Wrap highlight with HTMLElement, to be able to use full color.
 * [x] Refresh only added/deleted decoration for performance.
