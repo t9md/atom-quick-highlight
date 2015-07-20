@@ -1,4 +1,9 @@
 @import "ui-variables";
+.round-box (@border-color) {
+  box-sizing: border-box;
+  border-radius: @component-border-radius;
+  border: 1px solid @border-color;
+}
 atom-text-editor::shadow .quick-highlight {
   &.highlight-01 .region {
     background-color: rgba(227, 20, 20, 0.40);
@@ -30,55 +35,34 @@ atom-text-editor::shadow .quick-highlight {
   &.highlight-10 .region {
     background-color: rgba(103, 97, 173, 0.40);
   }
-
   &.box-01 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(227, 20, 20, 1.00);
+    .round-box(rgba(227, 20, 20, 1.00));
   }
   &.box-02 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(227, 17, 224, 1.00);
+    .round-box(rgba(227, 17, 224, 1.00));
   }
   &.box-03 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(17, 227, 227, 1.00);
+    .round-box(rgba(17, 227, 227, 1.00));
   }
   &.box-04 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgb(87, 84, 213);
+    .round-box(rgb(87, 84, 213));
   }
   &.box-05 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(142, 191, 152, 1.00);
+    .round-box(rgba(142, 191, 152, 1.00));
   }
   &.box-06 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(244, 208, 82, 1.00);
+    .round-box(rgba(244, 208, 82, 1.00));
   }
   &.box-07 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(34, 217, 5, 1.00);
+    .round-box(rgba(34, 217, 5, 1.00));
   }
   &.box-08 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(103, 97, 173, 1.00);
+    .round-box(rgba(103, 97, 173, 1.00));
   }
   &.box-09 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgba(91, 122, 112, 1.00);
+    .round-box(rgba(91, 122, 112, 1.00));
   }
   &.box-10 .region {
-    box-sizing: border-box;
-    border-radius: @component-border-radius;
-    border: 2px solid rgb(209, 36, 94);
+    .round-box(rgb(209, 36, 94));
   }
 }

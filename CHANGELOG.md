@@ -1,3 +1,6 @@
+## 0.1.11 - BUG FIX
+* [FIX] Could not highlight for Object's property like `hasOwnProperty`, `__defineGetter__`.
+
 ## 0.1.10 - Improve
 * [FIX] box color broken in TILE border.
 

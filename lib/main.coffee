@@ -38,14 +38,14 @@ module.exports =
 
   # Keep list of decoration for each editor.
   # Used for bulk destroy().
-  decorations: {}
+  decorations: null
 
   # @highlights keep keyword to colorName pair.
   # e.g.
   #   @highlights =
   #     text1: 'highlight-01'
   #     text2: 'highlight-02'
-  highlights: {}
+  highlights: null
 
   colorIndex: null
   colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
@@ -66,6 +66,7 @@ module.exports =
     @decorationPreference = atom.config.get 'quick-highlight.decorate'
     @subscriptions.add atom.config.onDidChange 'quick-highlight.decorate', ({newValue}) =>
       @decorationPreference = newValue
+    @decorations = {}
 
   onDidChangeActivePaneItem: ->
     atom.workspace.onDidChangeActivePaneItem (item) =>
@@ -122,6 +123,8 @@ module.exports =
     text = editor.getSelectedText() or editor.getWordUnderCursor()
     count = null
 
+    @decorations ?= {}
+    @highlights ?= Object.create(null)
     if @highlights[text]
       @removeHighlight text
     else
@@ -137,9 +140,9 @@ module.exports =
   clear: ->
     for editorID of @decorations
       @clearHighlights editorID
-    @highlights = {}
-    @decorations = {}
-    @colorIndex = null
+    @highlights  = null
+    @decorations = null
+    @colorIndex  = null
     @statusBarManager?.update()
 
   addHighlight: (text, color) ->
@@ -164,6 +167,7 @@ module.exports =
 
   # editor is TextEditor or TextEditor's ID.
   clearHighlights: (editor) ->
+    return unless @decorations
     editorID = if (editor instanceof TextEditor) then editor.id else editor
     if text2decorations = @decorations[editorID]
       for text, decorations of text2decorations
@@ -183,7 +187,7 @@ module.exports =
       type: 'highlight'
       class: "quick-highlight #{@decorationPreference}-#{color}"
 
-    @decorations[editor.id] ?= {}
+    @decorations[editor.id] ?= Object.create(null)
     @decorations[editor.id][text] ?= []
     @decorations[editor.id][text].push decoration
 
