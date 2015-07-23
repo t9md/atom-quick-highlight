@@ -30,7 +30,7 @@ e.g.
 
 * vim-mode user
 ```coffeescript
-'atom-text-editor.vim-mode.command-mode, atom-text-editor.vim-mode.visual-mode':
+'atom-text-editor.vim-mode.normal-mode, atom-text-editor.vim-mode.visual-mode':
   'space m': 'quick-highlight:toggle'
   'space M': 'quick-highlight:clear'
 ```
