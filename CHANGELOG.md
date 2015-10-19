@@ -1,3 +1,7 @@
+## 0.2.0 - Improve
+- Completely rewrite.
+- Now decoration is created only for visible area. Greatly improve performance.
+
 ## 0.1.12 - Doc
 - Update readme to follow vim-mode's rename from command-mode to normal-mode
 

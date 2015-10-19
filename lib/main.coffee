@@ -1,6 +1,5 @@
-{TextEditor, CompositeDisposable, Disposable, Emitter} = require 'atom'
+{TextEditor, CompositeDisposable, Disposable, Emitter, Range} = require 'atom'
 _ = require 'underscore-plus'
-{getEditor, getVisibleEditor, getVisibleBufferRange} = require './utils'
 StatusBarManager = require './status-bar-manager'
 
 Config =
@@ -31,25 +30,26 @@ Config =
     default: 'badge icon icon-location'
     description: "Style class for count span element. See `styleguide:show`."
 
+# Utils
+# -------------------------
+getEditor = ->
+  atom.workspace.getActiveTextEditor()
+
+getVisibleEditor = ->
+  (e for p in atom.workspace.getPanes() when e = p.getActiveEditor())
+
+getVisibleBufferRange = (editor) ->
+  [startRow, endRow] = editor.getVisibleRowRange().map (row) ->
+    editor.bufferRowForScreenRow row
+  new Range([startRow, 0], [endRow, Infinity])
+
 module.exports =
   config: Config
-  subscriptions: null
-  editorSubscriptions: null
-  statusBarManager: null
-
-  # @highlights keep keyword to colorName pair.
-  # e.g.
-  #   @highlights =
-  #     text1: 'highlight-01'
-  #     text2: 'highlight-02'
-  highlights: null
-
-  colorIndex: -1
-  colors: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
   activate: (state) ->
-    @editorSubscriptions = {}
     @subscriptions = subs = new CompositeDisposable
+    @colorIndex = -1
+    @colors = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     @emitter = new Emitter
     @editors = new Map
 
@@ -72,8 +72,8 @@ module.exports =
       subs.add editor.onDidChangeScrollTop => @refreshEditor(editor)
       subs.add editor.onDidChangeScrollLeft => @refreshEditor(editor)
 
-      subs.add me = editor.onDidDestroy ->
-        @clearHighlights(editor)
+      subs.add me = editor.onDidDestroy =>
+        @clearEditor editor
         me.dispose()
         subs.remove(me)
 
@@ -89,63 +89,56 @@ module.exports =
   deactivate: ->
     @clear()
     @subscriptions.dispose()
-    @subscriptions = null
+    {@editors, @subscriptions, keyword2color, @colorIndex} = {}
 
   toggle: ->
     editor = getEditor()
     point = editor.getCursorBufferPosition()
     keyword = editor.getSelectedText() or editor.getWordUnderCursor()
 
-    @highlights ?= Object.create(null)
-    if @highlights[keyword]?
-      delete @highlights[keyword]
+    @keyword2color ?= Object.create(null)
+    if @keyword2color[keyword]?
+      delete @keyword2color[keyword]
       @statusBarManager?.clear()
     else
-      @highlights[keyword] = @getNextColor()
-      @statusBarManager?.update @getCount(editor, keyword)
+      @keyword2color[keyword] = @getNextColor()
+      @statusBarManager?.update @getCountForKeyword(editor, keyword)
 
-    for editor in getVisibleEditor()
-      @refreshEditor editor
+    @refreshEditor(e) for e in getVisibleEditor()
     editor.setCursorBufferPosition point
 
   clear: ->
     @editors.forEach (decorations, editor) =>
-      @destroyDecorations decorations
-    @highlights  = null
+      @clearEditor editor
+    @editors.clear()
+    @keyword2color  = null
     @colorIndex  = -1
     @statusBarManager?.clear()
 
   refreshEditor: (editor) ->
-    @clearHighlights editor
-    @renderHighlights editor
+    @clearEditor editor
+    @renderEditor editor
 
-  renderHighlights: (editor) ->
-    for keyword, color of @highlights
-      @highlightEditor editor, keyword, color
+  renderEditor: (editor) ->
+    scanRange = getVisibleBufferRange(editor)
 
-  clearHighlights: (editor) ->
+    decorations = []
+    for keyword, color of @keyword2color
+      pattern = ///#{_.escapeRegExp(keyword)}///g
+      editor.scanInBufferRange pattern, scanRange, ({range}) =>
+        decorations.push @decorate(editor, range, color)
+
+    @editors.set(editor, decorations)
+
+  clearEditor: (editor) ->
     if decorations = @editors.get(editor)
-      @destroyDecorations decorations
+      d.getMarker().destroy() for d in decorations
       @editors.delete(editor)
 
-  getCount: (editor, keyword) ->
-    pattern = ///#{_.escapeRegExp(keyword)}///g
+  getCountForKeyword: (editor, keyword) ->
     count = 0
-    editor.scan pattern, ({range}) ->
-      count++
+    editor.scan ///#{_.escapeRegExp(keyword)}///g, -> count++
     count
-
-  highlightEditor: (editor, keyword, color) ->
-    pattern = ///#{_.escapeRegExp(keyword)}///g
-    scanRange = getVisibleBufferRange(editor)
-    decorations = []
-    editor.scanInBufferRange pattern, scanRange, ({range}) =>
-      decorations.push @decorate(editor, range, color)
-
-    if decorations
-      if @editors.has(editor)
-        decorations = @editors.get(editor).concat(decorations)
-      @editors.set(editor, decorations)
 
   decorate: (editor, range, color) ->
     marker = editor.markBufferRange range,
@@ -156,13 +149,10 @@ module.exports =
       type: 'highlight'
       class: "quick-highlight #{@decorationPreference}-#{color}"
 
-  destroyDecorations: (decorations) ->
-    for decoration in decorations
-      decoration.getMarker().destroy()
-
   consumeStatusBar: (statusBar) ->
     return unless @statusBarManager?
     @statusBarManager.initialize(statusBar)
     @statusBarManager.attach()
     @subscriptions.add new Disposable =>
       @statusBarManager.detach()
+      @statusBarManager = null
