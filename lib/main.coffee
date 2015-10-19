@@ -60,9 +60,6 @@ module.exports =
       'quick-highlight:toggle': => @toggle()
       'quick-highlight:clear':  => @clear()
 
-    subs.add atom.config.observe 'quick-highlight.decorate', (value) =>
-      @decorationPreference = value
-
     subs.add atom.workspace.observeTextEditors (editor) =>
       subs.add editor.onDidStopChanging =>
         return unless getEditor() is editor
@@ -107,6 +104,31 @@ module.exports =
     @refreshEditor(e) for e in getVisibleEditor()
     editor.setCursorBufferPosition point
 
+  refreshEditor: (editor) ->
+    @clearEditor editor
+    @renderEditor editor
+
+  renderEditor: (editor) ->
+    decorationStyle = atom.config.get('quick-highlight.decorate')
+    scanRange = getVisibleBufferRange(editor)
+    markerOptions = {invalidate: 'inside', persistent: false}
+
+    decorations = []
+    for keyword, color of @keyword2color
+      klass = "quick-highlight #{decorationStyle}-#{color}"
+      decorationOptions = {type: 'highlight', class: klass}
+
+      pattern = ///#{_.escapeRegExp(keyword)}///g
+      editor.scanInBufferRange pattern, scanRange, ({range}) ->
+        marker = editor.markBufferRange range, markerOptions
+        decorations.push editor.decorateMarker marker, decorationOptions
+    @editors.set(editor, decorations)
+
+  clearEditor: (editor) ->
+    if decorations = @editors.get(editor)
+      d.getMarker().destroy() for d in decorations
+      @editors.delete(editor)
+
   clear: ->
     @editors.forEach (decorations, editor) =>
       @clearEditor editor
@@ -115,39 +137,10 @@ module.exports =
     @colorIndex  = -1
     @statusBarManager?.clear()
 
-  refreshEditor: (editor) ->
-    @clearEditor editor
-    @renderEditor editor
-
-  renderEditor: (editor) ->
-    scanRange = getVisibleBufferRange(editor)
-
-    decorations = []
-    for keyword, color of @keyword2color
-      pattern = ///#{_.escapeRegExp(keyword)}///g
-      editor.scanInBufferRange pattern, scanRange, ({range}) =>
-        decorations.push @decorate(editor, range, color)
-
-    @editors.set(editor, decorations)
-
-  clearEditor: (editor) ->
-    if decorations = @editors.get(editor)
-      d.getMarker().destroy() for d in decorations
-      @editors.delete(editor)
-
   getCountForKeyword: (editor, keyword) ->
     count = 0
     editor.scan ///#{_.escapeRegExp(keyword)}///g, -> count++
     count
-
-  decorate: (editor, range, color) ->
-    marker = editor.markBufferRange range,
-      invalidate: 'inside'
-      persistent: false
-
-    editor.decorateMarker marker,
-      type: 'highlight'
-      class: "quick-highlight #{@decorationPreference}-#{color}"
 
   consumeStatusBar: (statusBar) ->
     return unless @statusBarManager?
