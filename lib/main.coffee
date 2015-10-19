@@ -61,27 +61,25 @@ module.exports =
       'quick-highlight:clear':  => @clear()
 
     subs.add atom.workspace.observeTextEditors (editor) =>
-      subs.add editor.onDidStopChanging =>
+      editorSubs = new CompositeDisposable
+      editorSubs.add editor.onDidStopChanging =>
         return unless getEditor() is editor
         URI = editor.getURI()
         @refreshEditor(e) for e in getVisibleEditor() when (e.getURI() is URI)
 
-      subs.add editor.onDidChangeScrollTop => @refreshEditor(editor)
-      subs.add editor.onDidChangeScrollLeft => @refreshEditor(editor)
+      editorSubs.add editor.onDidChangeScrollTop => @refreshEditor(editor)
+      editorSubs.add editor.onDidChangeScrollLeft => @refreshEditor(editor)
 
-      subs.add me = editor.onDidDestroy =>
+      editorSubs.add editor.onDidDestroy =>
         @clearEditor editor
-        me.dispose()
-        subs.remove(me)
+        editorSubs.dispose()
+        subs.remove(editorSubs)
+        
+      subs.add editorSubs
 
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
       @statusBarManager?.clear()
-      if item instanceof TextEditor
-        @refreshEditor item
-
-  getNextColor: ->
-    @colorIndex = (@colorIndex + 1) % @colors.length
-    @colors[@colorIndex]
+      @refreshEditor(item) if item instanceof TextEditor
 
   deactivate: ->
     @clear()
@@ -98,7 +96,8 @@ module.exports =
       delete @keyword2color[keyword]
       @statusBarManager?.clear()
     else
-      @keyword2color[keyword] = @getNextColor()
+      @colorIndex = (@colorIndex + 1) % @colors.length
+      @keyword2color[keyword] = @colors[@colorIndex]
       @statusBarManager?.update @getCountForKeyword(editor, keyword)
 
     @refreshEditor(e) for e in getVisibleEditor()
