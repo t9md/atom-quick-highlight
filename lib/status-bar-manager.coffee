@@ -15,12 +15,12 @@ class StatusBarManager
   initialize: (@statusBar) ->
 
   update: (count) ->
-    if count
-      @span.className = atom.config.get('quick-highlight.countDisplayStyles')
-      @span.textContent = count
-      @element.style.display = 'inline-block'
-    else
-      @element.style.display = 'none'
+    @span.className = atom.config.get('quick-highlight.countDisplayStyles')
+    @span.textContent = count
+    @element.style.display = 'inline-block'
+
+  clear: ->
+    @element.style.display = 'none'
 
   attach: ->
     displayPosition = atom.config.get 'quick-highlight.countDisplayPosition'

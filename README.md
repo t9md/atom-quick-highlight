@@ -1,5 +1,4 @@
 # quick-highlight
-
 Quickly highlight selected text or current word.
 
 ![gif](https://raw.githubusercontent.com/t9md/t9md/3b13d5fb6134b0b393e0a18b27bdd9c7b4350ace/img/atom-quick-highlight.gif)
