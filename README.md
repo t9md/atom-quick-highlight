@@ -1,8 +1,8 @@
 # quick-highlight
-Quickly highlight selected text or current word.  
-Highlight persist until you clear.
+Quickly highlight selected text or word under cursor.  
+The highlights are persists until you clear.
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/3b13d5fb6134b0b393e0a18b27bdd9c7b4350ace/img/atom-quick-highlight.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/6724f957cc71cbdc82e8a97ae1beac20327090cf/img/atom-quick-highlight.gif)
 
 Show found count on StatusBar.
 ![gif](https://raw.githubusercontent.com/t9md/t9md/a00e64b9dd85b851ad23c28e830f4a7d7dbe6dcf/img/atom-quick-highlight.png)
@@ -17,7 +17,6 @@ Show found count on StatusBar.
 No default keymap.
 
 e.g.
-
 * general
 ```coffeescript
 'atom-workspace atom-text-editor:not([mini])':
