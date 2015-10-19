@@ -8,12 +8,12 @@ Config =
     type: 'string'
     default: 'box'
     enum: ['box', 'highlight']
-    description: "How to decorate your highlight"
+    description: "Decoation style for highlight"
   displayCountOnStatusBar:
     order: 11
     type: 'boolean'
     default: true
-    description: "Show found count on StatusBar on highlight"
+    description: "Show found count on StatusBar"
   countDisplayPosition:
     order: 12
     type: 'string'
