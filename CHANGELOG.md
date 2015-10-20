@@ -1,5 +1,6 @@
-## 0.3.1 - Add spec [working]
-- spec
+## 0.3.1 - Add spec
+- Add spec
+- Precise check for decorationsByEditor has keywords.
 
 ## 0.3.0 - Improve
 - Completely rewrite.
