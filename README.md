@@ -1,4 +1,4 @@
-# quick-highlight
+# quick-highlight [![Build Status](https://travis-ci.org/t9md/atom-quick-highlight.svg)](https://travis-ci.org/t9md/atom-quick-highlight)
 Quickly highlight selected text or word under cursor.  
 The highlights are persists until you clear.
 
