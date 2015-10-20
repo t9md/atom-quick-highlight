@@ -1,3 +1,6 @@
+## 0.3.1 - Add spec [working]
+- spec
+
 ## 0.3.0 - Improve
 - Completely rewrite.
 - Now decoration is created only for visible area. Greatly improve performance.
