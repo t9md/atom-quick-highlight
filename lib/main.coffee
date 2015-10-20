@@ -32,6 +32,22 @@ Config =
 
 # Utils
 # -------------------------
+getColorProvider = (colors) ->
+  index = -1
+  reset: -> index = -1
+  getNext: -> colors[index = (index + 1) % colors.length]
+
+getKeywordManager = (colorProvider) ->
+  kw2color = Object.create(null)
+  add:      (keyword) -> kw2color[keyword] = colorProvider.getNext()
+  delete:   (keyword) -> delete kw2color[keyword]
+  has:      (keyword) -> kw2color[keyword]?
+  reset:    (keyword) ->
+    kw2color = Object.create(null)
+    colorProvider.reset()
+  each:     (fn) ->
+    fn(keyword, color) for keyword, color of kw2color
+
 getEditor = ->
   atom.workspace.getActiveTextEditor()
 
@@ -48,10 +64,10 @@ module.exports =
 
   activate: (state) ->
     @subscriptions = subs = new CompositeDisposable
-    @colorIndex = -1
-    @colors = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     @emitter = new Emitter
     @editors = new Map
+    colorProvider = getColorProvider(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'])
+    @keywords = getKeywordManager(colorProvider)
 
     if atom.config.get 'quick-highlight.displayCountOnStatusBar'
       @statusBarManager = new StatusBarManager
@@ -74,7 +90,7 @@ module.exports =
         @clearEditor editor
         editorSubs.dispose()
         subs.remove(editorSubs)
-        
+
       subs.add editorSubs
 
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
@@ -84,20 +100,18 @@ module.exports =
   deactivate: ->
     @clear()
     @subscriptions.dispose()
-    {@editors, @subscriptions, keyword2color, @colorIndex} = {}
+    {@editors, @subscriptions, @keywords} = {}
 
   toggle: ->
     editor = getEditor()
     point = editor.getCursorBufferPosition()
     keyword = editor.getSelectedText() or editor.getWordUnderCursor()
 
-    @keyword2color ?= Object.create(null)
-    if @keyword2color[keyword]?
-      delete @keyword2color[keyword]
+    if @keywords.has(keyword)
+      @keywords.delete(keyword)
       @statusBarManager?.clear()
     else
-      @colorIndex = (@colorIndex + 1) % @colors.length
-      @keyword2color[keyword] = @colors[@colorIndex]
+      @keywords.add(keyword)
       @statusBarManager?.update @getCountForKeyword(editor, keyword)
 
     @refreshEditor(e) for e in getVisibleEditor()
@@ -109,14 +123,13 @@ module.exports =
 
   renderEditor: (editor) ->
     decorationStyle = atom.config.get('quick-highlight.decorate')
-    scanRange = getVisibleBufferRange(editor)
     markerOptions = {invalidate: 'inside', persistent: false}
+    scanRange = getVisibleBufferRange(editor)
 
     decorations = []
-    for keyword, color of @keyword2color
+    @keywords.each (keyword, color) ->
       klass = "quick-highlight #{decorationStyle}-#{color}"
       decorationOptions = {type: 'highlight', class: klass}
-
       pattern = ///#{_.escapeRegExp(keyword)}///g
       editor.scanInBufferRange pattern, scanRange, ({range}) ->
         marker = editor.markBufferRange range, markerOptions
@@ -132,8 +145,7 @@ module.exports =
     @editors.forEach (decorations, editor) =>
       @clearEditor editor
     @editors.clear()
-    @keyword2color  = null
-    @colorIndex  = -1
+    @keywords.reset()
     @statusBarManager?.clear()
 
   getCountForKeyword: (editor, keyword) ->
