@@ -65,7 +65,7 @@ module.exports =
   activate: (state) ->
     @subscriptions = subs = new CompositeDisposable
     @emitter = new Emitter
-    @editors = new Map
+    @decorationsByEditor = new Map
     colorProvider = getColorProvider(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'])
     @keywords = getKeywordManager(colorProvider)
 
@@ -100,7 +100,7 @@ module.exports =
   deactivate: ->
     @clear()
     @subscriptions.dispose()
-    {@editors, @subscriptions, @keywords} = {}
+    {@decorationsByEditor, @subscriptions, @keywords} = {}
 
   toggle: ->
     editor = getEditor()
@@ -134,17 +134,17 @@ module.exports =
       editor.scanInBufferRange pattern, scanRange, ({range}) ->
         marker = editor.markBufferRange range, markerOptions
         decorations.push editor.decorateMarker marker, decorationOptions
-    @editors.set(editor, decorations)
+    @decorationsByEditor.set(editor, decorations)
 
   clearEditor: (editor) ->
-    if decorations = @editors.get(editor)
-      d.getMarker().destroy() for d in decorations
-      @editors.delete(editor)
+    if @decorationsByEditor.has(editor)
+      d.getMarker().destroy() for d in @decorationsByEditor.get(editor)
+      @decorationsByEditor.delete(editor)
 
   clear: ->
-    @editors.forEach (decorations, editor) =>
+    @decorationsByEditor.forEach (decorations, editor) =>
       @clearEditor editor
-    @editors.clear()
+    @decorationsByEditor.clear()
     @keywords.reset()
     @statusBarManager?.clear()
 
