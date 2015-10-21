@@ -1,3 +1,6 @@
+## 0.3.2 - Add spec [WIP]
+- More spec coverage: statusbar indicator.
+
 ## 0.3.1 - Add spec
 - Add spec
 - Precise check for decorationsByEditor has keywords.
