@@ -41,7 +41,7 @@ getKeywordManager = (colorProvider) ->
   kw2color = Object.create(null)
   add:      (keyword) -> kw2color[keyword] = colorProvider.getNext()
   delete:   (keyword) -> delete kw2color[keyword]
-  has:      (keyword) -> kw2color[keyword]?
+  has:      (keyword) -> keyword of kw2color
   reset:    (keyword) ->
     kw2color = Object.create(null)
     colorProvider.reset()
