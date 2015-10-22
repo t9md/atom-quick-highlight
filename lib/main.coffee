@@ -45,7 +45,7 @@ getKeywordManager = (colorProvider) ->
   reset:    (keyword) ->
     kw2color = Object.create(null)
     colorProvider.reset()
-  each:     (fn) ->
+  each: (fn) ->
     fn(keyword, color) for keyword, color of kw2color
 
 getEditor = ->
@@ -66,7 +66,7 @@ module.exports =
     @subscriptions = subs = new CompositeDisposable
     @emitter = new Emitter
     @decorationsByEditor = new Map
-    colorProvider = getColorProvider(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'])
+    colorProvider = getColorProvider(['01', '02', '03', '04', '05', '06', '07'])
     @keywords = getKeywordManager(colorProvider)
 
     if atom.config.get 'quick-highlight.displayCountOnStatusBar'

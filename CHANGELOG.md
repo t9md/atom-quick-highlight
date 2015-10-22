@@ -1,5 +1,6 @@
-## 0.3.2 - Add spec [WIP]
+## 0.3.2 - Add spec
 - More spec coverage: statusbar indicator.
+- Improve default color. now change color based on @syntax-background-color
 
 ## 0.3.1 - Add spec
 - Add spec

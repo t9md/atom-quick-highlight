@@ -50,15 +50,5 @@ e.g.
 
 # TODO
 
-* [ ] Improve default to dynamically change using [color-channel](http://lesscss.org/functions/#color-channel)?
+* [x] Improve default to dynamically change using [color-channel](http://lesscss.org/functions/#color-channel)?
 * [ ] Highlight with RegExp.
-* [x] Show matched count on statusbar?
-* [x] Refresh only added/deleted decoration for performance.
-* [x] auto highlight for newly added texts while editiong.
-* [x] highlight across visible buffer.
-* [x] Or some configurable decoration style like outline, underline.
-
-# Limitation
-
-* Currently, color must be transparent, it need some work.
-See [discussion](https://discuss.atom.io/t/editor-marker-css/8616) here

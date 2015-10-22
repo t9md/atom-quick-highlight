@@ -1,68 +1,57 @@
 @import "ui-variables";
-.round-box (@border-color) {
+@import "syntax-variables";
+
+@base-color: @syntax-background-color;
+
+// Functions
+.color (@scope, @color) {
+  @{scope}: contrast(@base-color, darken(@color, 10%), lighten(@color, 20%));
+}
+
+.round-box (@color) {
   box-sizing: border-box;
   border-radius: @component-border-radius;
-  border: 2px solid @border-color;
+  border-width: 2px;
+  border-style: solid;
+  .color(border-color, @color);
 }
-atom-text-editor::shadow .quick-highlight {
-  &.highlight-01 .region {
-    background-color: rgba(227, 20, 20, 0.40);
+
+.box(@name, @color) {
+  .quick-highlight.@{name} .region {
+    .round-box(@color)
   }
-  &.highlight-02 .region {
-    background-color: rgba(42, 1, 227, 0.40);
+}
+
+.highlight(@name, @color) {
+  .quick-highlight.@{name} .region {
+    background-color: fade(@color, 50%);
   }
-  &.highlight-03 .region {
-    background-color: rgba(91, 122, 112, 0.40);
-  }
-  &.highlight-04 .region {
-    background-color: rgba(227, 17, 224, 0.40);
-  }
-  &.highlight-05 .region {
-    background-color: rgba(17, 227, 227, 0.40);
-  }
-  &.highlight-06 .region {
-    background-color: rgba(119, 42, 158, 0.40);
-  }
-  &.highlight-07 .region {
-    background-color: rgba(142, 191, 152, 0.40);
-  }
-  &.highlight-08 .region {
-    background-color: rgba(244, 208, 82, 0.40);
-  }
-  &.highlight-09 .region {
-    background-color: rgba(34, 217, 5, 0.40);
-  }
-  &.highlight-10 .region {
-    background-color: rgba(103, 97, 173, 0.40);
-  }
-  &.box-01 .region {
-    .round-box(rgba(227, 20, 20, 1.00));
-  }
-  &.box-02 .region {
-    .round-box(rgba(227, 17, 224, 1.00));
-  }
-  &.box-03 .region {
-    .round-box(rgba(17, 227, 227, 1.00));
-  }
-  &.box-04 .region {
-    .round-box(rgb(87, 84, 213));
-  }
-  &.box-05 .region {
-    .round-box(rgba(142, 191, 152, 1.00));
-  }
-  &.box-06 .region {
-    .round-box(rgba(244, 208, 82, 1.00));
-  }
-  &.box-07 .region {
-    .round-box(rgba(34, 217, 5, 1.00));
-  }
-  &.box-08 .region {
-    .round-box(rgba(103, 97, 173, 1.00));
-  }
-  &.box-09 .region {
-    .round-box(rgba(91, 122, 112, 1.00));
-  }
-  &.box-10 .region {
-    .round-box(rgb(209, 36, 94));
-  }
+}
+
+@color-base: hsl(0, 100%, 50%);
+
+@color01: spin(@color-base, 0);
+@color02: spin(@color-base, 180);
+@color03: spin(@color-base, 315);
+@color04: spin(@color-base, 135);
+@color05: spin(@color-base, 270);
+@color06: spin(@color-base, 225);
+@color07: spin(@color-base, 45);
+
+atom-text-editor::shadow {
+  .box(box-01, @color01);
+  .box(box-02, @color02);
+  .box(box-03, @color03);
+  .box(box-04, @color04);
+  .box(box-05, @color05);
+  .box(box-06, @color06);
+  .box(box-07, @color07);
+
+  .highlight(highlight-01, @color01);
+  .highlight(highlight-02, @color02);
+  .highlight(highlight-03, @color03);
+  .highlight(highlight-04, @color04);
+  .highlight(highlight-05, @color05);
+  .highlight(highlight-06, @color06);
+  .highlight(highlight-07, @color07);
 }
