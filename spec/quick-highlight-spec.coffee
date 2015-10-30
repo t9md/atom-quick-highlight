@@ -8,6 +8,9 @@ getDecorations = (editor) ->
   editor.getHighlightDecorations().filter (d) ->
     d.properties.class.match MARKER_REGEXP
 
+getView = (model) ->
+  atom.views.getView(model)
+
 # Main
 # -------------------------
 addCustomMatchers = (spec) ->
@@ -42,7 +45,7 @@ describe "quick-highlight", ->
   beforeEach ->
     addCustomMatchers(this)
 
-    workspaceElement = atom.views.getView(atom.workspace)
+    workspaceElement = getView(atom.workspace)
     jasmine.attachToDOM workspaceElement
     activationPromise = null
 
@@ -61,7 +64,7 @@ describe "quick-highlight", ->
         editor.setText editorContent
 
     runs ->
-      editorElement = atom.views.getView(editor)
+      editorElement = getView(editor)
       editor.setCursorBufferPosition([0, 0])
       activationPromise = atom.packages.activatePackage("quick-highlight").then (pack) ->
         main = pack.mainModule
@@ -132,7 +135,7 @@ describe "quick-highlight", ->
         atom.workspace.open('sample-2', {split: 'right'}).then (e) ->
           editor2 = e
           editor2.setText editorContent
-          editor2Element = atom.views.getView(editor2)
+          editor2Element = getView(editor2)
           editor2.setCursorBufferPosition [0, 0]
 
       runs ->
@@ -173,7 +176,8 @@ describe "quick-highlight", ->
     lineHeightPx = 10
     rowsPerPage = 5
     scroll = (editor) ->
-      editor.setScrollTop(editor.getScrollTop() + editor.getHeight())
+      el = getView(editor)
+      el.setScrollTop(el.getScrollTop() + el.getHeight())
 
     beforeEach ->
       runs ->
@@ -185,8 +189,8 @@ describe "quick-highlight", ->
         atom.workspace.open(pathSample4).then (e) ->
           editor4 = e
           editor4.setLineHeightInPixels(lineHeightPx)
-          editor4.setHeight(rowsPerPage * lineHeightPx)
-          editorElement4 = atom.views.getView(editor4)
+          editorElement4 = getView(editor4)
+          editorElement4.setHeight(rowsPerPage * lineHeightPx)
 
       runs ->
         editor4.setCursorScreenPosition [1, 0]
