@@ -11,11 +11,19 @@ getDecorations = (editor) ->
 getView = (model) ->
   atom.views.getView(model)
 
+getVisibleBufferRowRange = (editor) ->
+  getView(editor).getVisibleRowRange().map (row) ->
+    editor.bufferRowForScreenRow row
+
 # Main
 # -------------------------
 addCustomMatchers = (spec) ->
+  getNotText = ->
+    if spec.isNot then " not" else ""
+
   spec.addMatchers
     toHaveDecorations: (expected) ->
+      notText = getNotText()
       editor = @actual
       decos = getDecorations(editor)
       if expected.color?
@@ -26,8 +34,9 @@ addCustomMatchers = (spec) ->
       if expected.length is 0
         lengthOK
       else
-        textMatches = (expected.text is editor.getTextInBufferRange(d.getMarker().getBufferRange()) for d in decos)
-        lengthOK and _.all(textMatches)
+        texts = (editor.getTextInBufferRange(d.getMarker().getBufferRange()) for d in decos)
+        this.message = -> "Expected #{jasmine.pp(texts)}, length: #{texts.length} to#{notText} #{jasmine.pp(expected)}"
+        lengthOK and _.all(texts, (text) -> text is expected.text)
 
     lengthOfDecorationsToBe: (expected) ->
       getDecorations(@actual).length is expected
@@ -174,7 +183,7 @@ describe "quick-highlight", ->
   describe "editor is scrollable", ->
     [editor4, editorElement4] = []
     lineHeightPx = 10
-    rowsPerPage = 5
+    rowsPerPage = 10
     scroll = (editor) ->
       el = getView(editor)
       el.setScrollTop(el.getScrollTop() + el.getHeight())
@@ -188,14 +197,16 @@ describe "quick-highlight", ->
       waitsForPromise ->
         atom.workspace.open(pathSample4).then (e) ->
           editor4 = e
-          editor4.setLineHeightInPixels(lineHeightPx)
           editorElement4 = getView(editor4)
           editorElement4.setHeight(rowsPerPage * lineHeightPx)
+          editorElement4.style.font = "12px monospace"
+          editorElement4.style.lineHeight = '10px'
+          atom.views.performDocumentPoll()
 
       runs ->
         editor4.setCursorScreenPosition [1, 0]
         atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
-        editor4.setCursorScreenPosition [3, 0]
+        editor4.setCursorBufferPosition [3, 0]
         atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
         expect(main.keywords.has('orange')).toBe true
         expect(main.keywords.has('apple')).toBe true

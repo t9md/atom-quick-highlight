@@ -1,3 +1,6 @@
+## 0.3.3 - FIX
+- [FIX] Deprecation waring from Atom v1.1.0.
+
 ## 0.3.2 - Add spec
 - More spec coverage: statusbar indicator.
 - Improve default color. now change color based on @syntax-background-color

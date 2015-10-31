@@ -51,11 +51,14 @@ getKeywordManager = (colorProvider) ->
 getEditor = ->
   atom.workspace.getActiveTextEditor()
 
+getView = (model) ->
+  atom.views.getView(model)
+
 getVisibleEditor = ->
   (e for p in atom.workspace.getPanes() when e = p.getActiveEditor())
 
 getVisibleBufferRange = (editor) ->
-  editorElement = atom.views.getView(editor)
+  editorElement = getView(editor)
   [startRow, endRow] = editorElement.getVisibleRowRange().map (row) ->
     editor.bufferRowForScreenRow row
   new Range([startRow, 0], [endRow, Infinity])
@@ -84,7 +87,7 @@ module.exports =
         URI = editor.getURI()
         @refreshEditor(e) for e in getVisibleEditor() when (e.getURI() is URI)
 
-      editorElement = atom.views.getView(editor)
+      editorElement = getView(editor)
       editorSubs.add editorElement.onDidChangeScrollTop => @refreshEditor(editor)
       editorSubs.add editorElement.onDidChangeScrollLeft => @refreshEditor(editor)
 
