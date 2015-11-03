@@ -1,7 +1,7 @@
 {
   "name": "quick-highlight",
   "main": "./lib/main",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Highlight text quickly.",
   "activationCommands": {
     "atom-text-editor": "quick-highlight:toggle"
