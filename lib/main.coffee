@@ -61,6 +61,9 @@ getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
   [startRow, endRow] = editorElement.getVisibleRowRange().map (row) ->
     editor.bufferRowForScreenRow row
+  # FIXME: editorElement.getVisibleRowRange() return [undefined, undefined] when
+  # it called to editorElement still not yet attached.
+  return null  if (isNaN(startRow) or isNaN(endRow))
   new Range([startRow, 0], [endRow, Infinity])
 
 module.exports =
@@ -91,12 +94,19 @@ module.exports =
       editorSubs.add editorElement.onDidChangeScrollTop => @refreshEditor(editor)
       editorSubs.add editorElement.onDidChangeScrollLeft => @refreshEditor(editor)
 
+      # [FIXME]
+      # @refreshEditor depend on editorElement.getVisibleRowRange() but it return
+      # [undefined, undefined] when it called on editorElement not attached yet.
+      # So we separately need to cover this case from Atom v1.1.0
+      editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
+
       editorSubs.add editor.onDidDestroy =>
         @clearEditor editor
         editorSubs.dispose()
         subs.remove(editorSubs)
 
       subs.add editorSubs
+
 
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
       @statusBarManager?.clear()
@@ -129,8 +139,7 @@ module.exports =
   renderEditor: (editor) ->
     decorationStyle = atom.config.get('quick-highlight.decorate')
     markerOptions = {invalidate: 'inside', persistent: false}
-    scanRange = getVisibleBufferRange(editor)
-
+    return unless scanRange = getVisibleBufferRange(editor)
     decorations = []
     @keywords.each (keyword, color) ->
       klass = "quick-highlight #{decorationStyle}-#{color}"
