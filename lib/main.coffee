@@ -92,7 +92,6 @@ module.exports =
 
       editorElement = getView(editor)
       editorSubs.add editorElement.onDidChangeScrollTop => @refreshEditor(editor)
-      editorSubs.add editorElement.onDidChangeScrollLeft => @refreshEditor(editor)
 
       # [FIXME]
       # @refreshEditor depend on editorElement.getVisibleRowRange() but it return
