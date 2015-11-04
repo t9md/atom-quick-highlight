@@ -1,3 +1,6 @@
+## 0.3.4 - FIX
+- Remove unnecessary event observation for onDidChangeScrollLeft
+
 ## 0.3.3 - FIX
 - [FIX] Uncaught TypeError: Invalid Point: (NaN, 0) #2, from Atom v1.1.0
 - [FIX] Deprecation waring from Atom v1.1.0.
