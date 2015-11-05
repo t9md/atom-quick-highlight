@@ -1,6 +1,6 @@
 # quick-highlight [![Build Status](https://travis-ci.org/t9md/atom-quick-highlight.svg?branch=master)](https://travis-ci.org/t9md/atom-quick-highlight)
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/6724f957cc71cbdc82e8a97ae1beac20327090cf/img/atom-quick-highlight.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/f51b8e211e9ed8ed455053be52d5505da876b298/img/atom-quick-highlight.gif)
 
 Show found count on StatusBar.
 ![gif](https://raw.githubusercontent.com/t9md/t9md/a00e64b9dd85b851ad23c28e830f4a7d7dbe6dcf/img/atom-quick-highlight.png)
