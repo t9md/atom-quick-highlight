@@ -1,6 +1,5 @@
 _ = require 'underscore-plus'
 
-
 MARKER_REGEXP = /^quick-highlight/
 # Helpers
 # -------------------------
@@ -14,6 +13,9 @@ getView = (model) ->
 getVisibleBufferRowRange = (editor) ->
   getView(editor).getVisibleRowRange().map (row) ->
     editor.bufferRowForScreenRow row
+
+setConfig = (name, value) ->
+  atom.config.set("quick-highlight.#{name}", value)
 
 # Main
 # -------------------------
@@ -51,8 +53,14 @@ addCustomMatchers = (spec) ->
 
 describe "quick-highlight", ->
   [editor, editorContent, editorElement, main, workspaceElement, pathSample1, pathSample2] = []
+
+  dispatchCommand = (command, {element}={}) ->
+    element ?= editorElement
+    atom.commands.dispatch(element, command)
+
   beforeEach ->
     addCustomMatchers(this)
+    spyOn(_._, "now").andCallFake -> window.now
 
     workspaceElement = getView(atom.workspace)
     jasmine.attachToDOM workspaceElement
@@ -77,7 +85,7 @@ describe "quick-highlight", ->
       editor.setCursorBufferPosition([0, 0])
       activationPromise = atom.packages.activatePackage("quick-highlight").then (pack) ->
         main = pack.mainModule
-      atom.commands.dispatch(editorElement, 'quick-highlight:toggle')
+      dispatchCommand('quick-highlight:toggle')
 
     waitsForPromise ->
       activationPromise
@@ -92,8 +100,7 @@ describe "quick-highlight", ->
       expect(main.keywords.has('orange')).toBe true
       expect(main.keywords.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 3
-
-      atom.commands.dispatch(editorElement, 'quick-highlight:toggle')
+      dispatchCommand('quick-highlight:toggle')
 
       expect(main.keywords.has('orange')).toBe false
       expect(main.keywords.has('apple')).toBe false
@@ -104,7 +111,7 @@ describe "quick-highlight", ->
       expect(main.keywords.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 3
       editor.setCursorScreenPosition [1, 12]
-      atom.commands.dispatch(editorElement, 'quick-highlight:toggle')
+      dispatchCommand('quick-highlight:toggle')
 
       expect(main.keywords.has('orange')).toBe true
       expect(main.keywords.has('apple')).toBe true
@@ -124,13 +131,13 @@ describe "quick-highlight", ->
       expect(main.keywords.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 3
       editor.setCursorScreenPosition [1, 12]
-      atom.commands.dispatch(editorElement, 'quick-highlight:toggle')
+      dispatchCommand('quick-highlight:toggle')
 
       expect(main.keywords.has('orange')).toBe true
       expect(main.keywords.has('apple')).toBe true
       expect(editor).lengthOfDecorationsToBe 6
 
-      atom.commands.dispatch(editorElement, 'quick-highlight:clear')
+      dispatchCommand('quick-highlight:clear')
       expect(editor).lengthOfDecorationsToBe 0
       expect(main.keywords.has('orange')).toBe false
       expect(main.keywords.has('apple')).toBe false
@@ -149,22 +156,31 @@ describe "quick-highlight", ->
 
       runs ->
         expect(editor2).toBeActiveEditor()
-        atom.commands.dispatch(editorElement, 'quick-highlight:clear')
+        dispatchCommand('quick-highlight:clear')
         expect(editor).lengthOfDecorationsToBe 0
         expect(main.decorationsByEditor.has(editor)).toBe false
         expect(editor2).lengthOfDecorationsToBe 0
         expect(main.decorationsByEditor.has(editor2)).toBe false
 
     it "can decorate keyword across visible editors", ->
-      atom.commands.dispatch(editor2Element, 'quick-highlight:toggle')
+      dispatchCommand('quick-highlight:toggle', editor2Element)
       expect(main.keywords.has('orange')).toBe true
       expect(main.keywords.has('apple')).toBe false
-
       expect(editor).toHaveDecorations color: '01', length: 3, text: 'orange'
       expect(editor2).toHaveDecorations color: '01', length: 3, text: 'orange'
 
+    it "clear selectionDecorations when activePane changed", ->
+      dispatchCommand('core:select-right', element: editor2Element)
+      dispatchCommand('core:select-right', element: editor2Element)
+      advanceClock(150)
+      expect(editor2.getSelectedText()).toBe "or"
+      expect(getDecorations(editor2)).toHaveLength 3
+      dispatchCommand('window:focus-next-pane', element: editor2Element)
+      expect(editor).toBeActiveEditor()
+      expect(getDecorations(editor2)).toHaveLength 0
+
     it "decorate keywords when new editor was opened", ->
-      atom.commands.dispatch(editor2Element, 'quick-highlight:toggle')
+      dispatchCommand('quick-highlight:toggle', editor2Element)
       expect(main.keywords.has('orange')).toBe true
       expect(main.keywords.has('apple')).toBe false
 
@@ -180,17 +196,79 @@ describe "quick-highlight", ->
         expect(editor2).toHaveDecorations color: '01', length: 3, text: 'orange'
         expect(editor3).toHaveDecorations color: '01', length: 3, text: 'orange'
 
-  describe "editor is scrollable", ->
+  describe "selection changed when highlightSelection", ->
+    beforeEach ->
+      dispatchCommand('quick-highlight:clear')
+      expect(editor).lengthOfDecorationsToBe 0
+      expect(main.keywords.has('orange')).toBe false
+      expect(main.keywords.has('apple')).toBe false
+      expect(editor).toHaveAllMarkerDestoyed()
+      expect(main.decorationsByEditor.has(editor)).toBe false
+
+    it "decorate selected keyword", ->
+      dispatchCommand('editor:select-word')
+      advanceClock(150)
+      expect(editor).toHaveDecorations length: 3, color: 'selection', text: 'orange'
+
+    it "clear decoration when selection is cleared", ->
+      dispatchCommand('editor:select-word')
+      advanceClock(150)
+      expect(editor).toHaveDecorations length: 3, color: 'selection', text: 'orange'
+      editor.clearSelections()
+      advanceClock(150)
+      expect(getDecorations(editor)).toHaveLength 0
+
+    it "won't decorate selectedText length is less than highlightSelectionMinimumLength", ->
+      setConfig('highlightSelectionMinimumLength', 3)
+      dispatchCommand('core:select-right')
+      advanceClock(150)
+      expect(editor.getSelectedText()).toBe "o"
+      expect(getDecorations(editor)).toHaveLength 0
+      dispatchCommand('core:select-right')
+      advanceClock(150)
+      expect(editor.getSelectedText()).toBe "or"
+      expect(getDecorations(editor)).toHaveLength 0
+      dispatchCommand('core:select-right')
+      advanceClock(150)
+      expect(editor.getSelectedText()).toBe "ora"
+      expect(editor).toHaveDecorations color: 'selection', length: 3, text: 'ora'
+
+    it "won't decorate when selection is all white space", ->
+      editor.setCursorBufferPosition([1, 0])
+      dispatchCommand('core:select-right')
+      dispatchCommand('core:select-right')
+      advanceClock(150)
+      {start, end} = editor.getLastSelection().getBufferRange()
+      expect(start).toEqual [1, 0]
+      expect(end).toEqual [1, 4]
+      expect(getDecorations(editor)).toHaveLength 0
+
+    it "won't decorate when selection is multi-line", ->
+      editor.setCursorBufferPosition([1, 0])
+      dispatchCommand('core:select-down')
+      advanceClock(150)
+      expect(editor.getLastSelection().isEmpty()).toBe false
+      expect(getDecorations(editor)).toHaveLength 0
+
+    it "won't decorate when highlightSelection is disabled", ->
+      setConfig('highlightSelection', false)
+      dispatchCommand('editor:select-word')
+      advanceClock(150)
+      expect(editor.getSelectedText()).toBe "orange"
+      expect(getDecorations(editor)).toHaveLength 0
+
+  describe "editor is scrolled", ->
     [editor4, editorElement4] = []
     lineHeightPx = 10
     rowsPerPage = 10
     scroll = (editor) ->
       el = getView(editor)
-      el.setScrollTop(el.getScrollTop() + el.getHeight())
+      amountInPixel = editor.getRowsPerPage() * editor.getLineHeightInPixels()
+      el.setScrollTop(el.getScrollTop() + amountInPixel)
 
     beforeEach ->
       runs ->
-        atom.commands.dispatch(editorElement, 'quick-highlight:clear')
+        dispatchCommand('quick-highlight:clear')
 
       pathSample4 = atom.project.resolvePath "sample-4"
 
@@ -200,14 +278,14 @@ describe "quick-highlight", ->
           editorElement4 = getView(editor4)
           editorElement4.setHeight(rowsPerPage * lineHeightPx)
           editorElement4.style.font = "12px monospace"
-          editorElement4.style.lineHeight = '10px'
+          editorElement4.style.lineHeight = "#{lineHeightPx}px"
           atom.views.performDocumentPoll()
 
       runs ->
         editor4.setCursorScreenPosition [1, 0]
-        atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
+        dispatchCommand('quick-highlight:toggle', element: editorElement4)
         editor4.setCursorBufferPosition [3, 0]
-        atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
+        dispatchCommand('quick-highlight:toggle', element: editorElement4)
         expect(main.keywords.has('orange')).toBe true
         expect(main.keywords.has('apple')).toBe true
 
@@ -237,10 +315,9 @@ describe "quick-highlight", ->
           main.statusBarManager.tile?
 
         runs ->
-          atom.commands.dispatch(editorElement4, 'quick-highlight:clear')
-
+          dispatchCommand('quick-highlight:clear', element: editorElement4)
           editor4.setCursorScreenPosition [1, 0]
-          atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
+          dispatchCommand('quick-highlight:toggle', element: editorElement4)
           expect(editor4).toHaveDecorations color: '01', length: 1, text: 'orange'
           container = workspaceElement.querySelector('#status-bar-quick-highlight')
           span = container.querySelector('span')
@@ -250,12 +327,12 @@ describe "quick-highlight", ->
         expect(span.textContent).toBe '3'
 
         editor4.setCursorScreenPosition [3, 0]
-        atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
+        dispatchCommand('quick-highlight:toggle', element: editorElement4)
         expect(editor4).toHaveDecorations color: '02', length: 1, text: 'apple'
         expect(container.style.display).toBe 'inline-block'
         expect(span.textContent).toBe '5'
 
       it 'hide count when decoration cleared', ->
-        atom.commands.dispatch(editorElement4, 'quick-highlight:toggle')
+        dispatchCommand('quick-highlight:toggle', element: editorElement4)
         expect(editor4).lengthOfDecorationsToBe 0
         expect(container.style.display).toBe 'none'

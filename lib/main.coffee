@@ -2,6 +2,8 @@
 _ = require 'underscore-plus'
 StatusBarManager = require './status-bar-manager'
 
+allWhiteSpaceRegExp = /^\s*$/
+
 Config =
   decorate:
     order: 1
@@ -12,7 +14,7 @@ Config =
   highlightSelection:
     order: 5
     type: 'boolean'
-    default: false
+    default: true
   highlightSelectionMinimumLength:
     order: 6
     type: 'integer'
@@ -108,7 +110,8 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
-      editorSubs.add @observerSelection(editor)
+      editorSubs.add editor.onDidChangeSelectionRange _.debounce(@highlightSelection.bind(this), 100)
+      editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection()
 
       editorSubs.add editor.onDidDestroy =>
         @clearEditor editor
@@ -119,20 +122,23 @@ module.exports =
 
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
       @statusBarManager?.clear()
-      @refreshEditor(item) if item instanceof TextEditor
+      if item instanceof TextEditor
+        @refreshEditor(item)
+        @highlightSelection()
 
-  observerSelection: (editor) ->
-    decorations = []
-    selectionChecker = =>
-      d.getMarker().destroy() for d in decorations
+  clearSelectionDecoration: ->
+    d.getMarker().destroy() for d in @selectionDecorations ? []
+    @selectionDecorations = null
 
-      selection = editor.getLastSelection()
-      return unless @needToHighlightSelection(selection)
-      keyword = selection.getText()
-      return unless scanRange = getVisibleBufferRange(editor)
-      decorations = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
+  highlightSelection: ->
+    @clearSelectionDecoration()
 
-    editor.onDidChangeSelectionRange _.debounce(selectionChecker, 100)
+    editor = getEditor()
+    selection = editor.getLastSelection()
+    return unless @needToHighlightSelection(selection)
+    keyword = selection.getText()
+    return unless scanRange = getVisibleBufferRange(editor)
+    @selectionDecorations = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
 
   needToHighlightSelection: (selection) ->
     switch
@@ -140,6 +146,7 @@ module.exports =
           , selection.isEmpty()
           , not selection.getBufferRange().isSingleLine()
           , selection.getText().length < atom.config.get('quick-highlight.highlightSelectionMinimumLength')
+          , allWhiteSpaceRegExp.test(selection.getText())
         false
       else
         true
@@ -147,6 +154,7 @@ module.exports =
   deactivate: ->
     @clear()
     @subscriptions.dispose()
+    @clearSelectionDecoration()
     {@decorationsByEditor, @subscriptions, @keywords} = {}
 
   toggle: ->
