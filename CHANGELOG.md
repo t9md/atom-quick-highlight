@@ -1,3 +1,6 @@
+## 0.3.5 - FIX
+- New: highlight selection enabled by default, you can disable from settings.
+
 ## 0.3.4 - FIX
 - Remove unnecessary event observation for onDidChangeScrollLeft
 
