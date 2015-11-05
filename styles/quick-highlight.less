@@ -8,17 +8,23 @@
   @{scope}: contrast(@base-color, darken(@color, 10%), lighten(@color, 20%));
 }
 
-.round-box (@color) {
+.round-box () {
   box-sizing: border-box;
   border-radius: @component-border-radius;
   border-width: 2px;
   border-style: solid;
-  .color(border-color, @color);
 }
 
 .box(@name, @color) {
   .quick-highlight.@{name} .region {
-    .round-box(@color)
+    .round-box;
+    .color(border-color, @color);
+  }
+}
+.box(@name) {
+  .quick-highlight.@{name} .region {
+    .round-box;
+    border-color: @syntax-result-marker-color;
   }
 }
 
@@ -46,6 +52,7 @@ atom-text-editor::shadow {
   .box(box-05, @color05);
   .box(box-06, @color06);
   .box(box-07, @color07);
+  .box(box-selection);
 
   .highlight(highlight-01, @color01);
   .highlight(highlight-02, @color02);

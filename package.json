@@ -3,9 +3,6 @@
   "main": "./lib/main",
   "version": "0.3.4",
   "description": "Highlight text quickly.",
-  "activationCommands": {
-    "atom-text-editor": "quick-highlight:toggle"
-  },
   "repository": "https://github.com/t9md/atom-quick-highlight",
   "license": "MIT",
   "engines": {

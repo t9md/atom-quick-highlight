@@ -9,6 +9,15 @@ Config =
     default: 'box'
     enum: ['box', 'highlight']
     description: "Decoation style for highlight"
+  highlightSelection:
+    order: 5
+    type: 'boolean'
+    default: false
+  highlightSelectionMinimumLength:
+    order: 6
+    type: 'integer'
+    default: 2
+    description: "Minimum length of selection to be highlight"
   displayCountOnStatusBar:
     order: 11
     type: 'boolean'
@@ -99,6 +108,8 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
+      editorSubs.add @observerSelection(editor)
+
       editorSubs.add editor.onDidDestroy =>
         @clearEditor editor
         editorSubs.dispose()
@@ -106,10 +117,32 @@ module.exports =
 
       subs.add editorSubs
 
-
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
       @statusBarManager?.clear()
       @refreshEditor(item) if item instanceof TextEditor
+
+  observerSelection: (editor) ->
+    decorations = []
+    selectionChecker = =>
+      d.getMarker().destroy() for d in decorations
+
+      selection = editor.getLastSelection()
+      return unless @needToHighlightSelection(selection)
+      keyword = selection.getText()
+      return unless scanRange = getVisibleBufferRange(editor)
+      decorations = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
+
+    editor.onDidChangeSelectionRange _.debounce(selectionChecker, 100)
+
+  needToHighlightSelection: (selection) ->
+    switch
+      when (not atom.config.get('quick-highlight.highlightSelection'))
+          , selection.isEmpty()
+          , not selection.getBufferRange().isSingleLine()
+          , selection.getText().length < atom.config.get('quick-highlight.highlightSelectionMinimumLength')
+        false
+      else
+        true
 
   deactivate: ->
     @clear()
@@ -136,18 +169,21 @@ module.exports =
     @renderEditor editor
 
   renderEditor: (editor) ->
-    decorationStyle = atom.config.get('quick-highlight.decorate')
-    markerOptions = {invalidate: 'inside', persistent: false}
     return unless scanRange = getVisibleBufferRange(editor)
     decorations = []
-    @keywords.each (keyword, color) ->
-      klass = "quick-highlight #{decorationStyle}-#{color}"
-      decorationOptions = {type: 'highlight', class: klass}
-      pattern = ///#{_.escapeRegExp(keyword)}///g
-      editor.scanInBufferRange pattern, scanRange, ({range}) ->
-        marker = editor.markBufferRange range, markerOptions
-        decorations.push editor.decorateMarker marker, decorationOptions
+    decorationStyle = atom.config.get('quick-highlight.decorate')
+    @keywords.each (keyword, color) =>
+      color = "#{decorationStyle}-#{color}"
+      decorations = decorations.concat @highlightKeyword(editor, scanRange, keyword, color)
     @decorationsByEditor.set(editor, decorations)
+
+  highlightKeyword: (editor, scanRange, keyword, color) ->
+    klass = "quick-highlight #{color}"
+    pattern = ///#{_.escapeRegExp(keyword)}///g
+    decorations = []
+    editor.scanInBufferRange pattern, scanRange, ({range}) =>
+      decorations.push @decorateRange(editor, range, {class: klass})
+    decorations
 
   clearEditor: (editor) ->
     if @decorationsByEditor.has(editor)
@@ -160,6 +196,15 @@ module.exports =
     @decorationsByEditor.clear()
     @keywords.reset()
     @statusBarManager?.clear()
+
+  decorateRange: (editor, range, options) ->
+    marker = editor.markBufferRange range,
+      invalidate: 'inside'
+      persistent: false
+
+    editor.decorateMarker marker,
+      type: 'highlight'
+      class: options.class
 
   getCountForKeyword: (editor, keyword) ->
     count = 0
