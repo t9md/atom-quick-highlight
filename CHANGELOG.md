@@ -1,4 +1,4 @@
-## 0.3.5 - FIX
+## 0.3.5 - New feature
 - New: highlight selection enabled by default, you can disable from settings.
 
 ## 0.3.4 - FIX
