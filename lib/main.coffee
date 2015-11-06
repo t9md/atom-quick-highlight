@@ -48,14 +48,16 @@ getColorProvider = (colors) ->
   reset: -> index = -1
   getNext: -> colors[index = (index + 1) % colors.length]
 
-getKeywordManager = (colorProvider) ->
+COLORS = ['01', '02', '03', '04', '05', '06', '07']
+getKeywordManager = ->
+  colors = getColorProvider(COLORS)
   kw2color = Object.create(null)
-  add:      (keyword) -> kw2color[keyword] = colorProvider.getNext()
+  add:      (keyword) -> kw2color[keyword] = colors.getNext()
   delete:   (keyword) -> delete kw2color[keyword]
   has:      (keyword) -> keyword of kw2color
   reset:    (keyword) ->
     kw2color = Object.create(null)
-    colorProvider.reset()
+    colors.reset()
   each: (fn) ->
     fn(keyword, color) for keyword, color of kw2color
 
@@ -84,8 +86,7 @@ module.exports =
     @subscriptions = subs = new CompositeDisposable
     @emitter = new Emitter
     @decorationsByEditor = new Map
-    colorProvider = getColorProvider(['01', '02', '03', '04', '05', '06', '07'])
-    @keywords = getKeywordManager(colorProvider)
+    @keywords = getKeywordManager()
 
     if atom.config.get 'quick-highlight.displayCountOnStatusBar'
       @statusBarManager = new StatusBarManager
@@ -110,8 +111,10 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
-      editorSubs.add editor.onDidChangeSelectionRange _.debounce(@highlightSelection.bind(this), 100)
-      editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection()
+      debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), 100)
+      editorSubs.add editor.onDidChangeSelectionRange ({selection}) ->
+        debouncedhighlightSelection(editor) if selection.isLastSelection()
+      editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection(editor)
 
       editorSubs.add editor.onDidDestroy =>
         @clearEditor editor
@@ -124,16 +127,14 @@ module.exports =
       @statusBarManager?.clear()
       if item instanceof TextEditor
         @refreshEditor(item)
-        @highlightSelection()
+        @highlightSelection(item)
 
   clearSelectionDecoration: ->
     d.getMarker().destroy() for d in @selectionDecorations ? []
     @selectionDecorations = null
 
-  highlightSelection: ->
+  highlightSelection: (editor) ->
     @clearSelectionDecoration()
-
-    editor = getEditor()
     selection = editor.getLastSelection()
     return unless @needToHighlightSelection(selection)
     keyword = selection.getText()
@@ -153,8 +154,8 @@ module.exports =
 
   deactivate: ->
     @clear()
-    @subscriptions.dispose()
     @clearSelectionDecoration()
+    @subscriptions.dispose()
     {@decorationsByEditor, @subscriptions, @keywords} = {}
 
   toggle: ->
@@ -186,6 +187,7 @@ module.exports =
     @decorationsByEditor.set(editor, decorations)
 
   highlightKeyword: (editor, scanRange, keyword, color) ->
+    return [] unless editor.isAlive()
     klass = "quick-highlight #{color}"
     pattern = ///#{_.escapeRegExp(keyword)}///g
     decorations = []

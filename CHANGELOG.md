@@ -1,3 +1,6 @@
+## 0.3.6 - FIX
+- Explicitly pass editor reference to highlightSelection() so that rapid pane change at Atom startup don't cause error.
+
 ## 0.3.5 - New feature
 - New: highlight selection enabled by default, you can disable from settings.
 
