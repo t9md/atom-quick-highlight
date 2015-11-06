@@ -257,6 +257,27 @@ describe "quick-highlight", ->
       expect(editor.getSelectedText()).toBe "orange"
       expect(getDecorations(editor)).toHaveLength 0
 
+    describe "highlightSelectionExcludeScopes", ->
+      beforeEach ->
+        setConfig('highlightSelectionExcludeScopes', [
+            'foo.bar',
+            'hoge',
+          ])
+
+      it "won't decorate when editor have specified scope case-1", ->
+        editorElement.classList.add 'foo', 'bar'
+        dispatchCommand('editor:select-word')
+        advanceClock(150)
+        expect(editor.getSelectedText()).toBe "orange"
+        expect(getDecorations(editor)).toHaveLength 0
+
+      it "won't decorate when editor have specified scope case-2", ->
+        editorElement.classList.add 'hoge'
+        dispatchCommand('editor:select-word')
+        advanceClock(150)
+        expect(editor.getSelectedText()).toBe "orange"
+        expect(getDecorations(editor)).toHaveLength 0
+
   describe "editor is scrolled", ->
     [editor4, editorElement4] = []
     lineHeightPx = 10

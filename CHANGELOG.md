@@ -1,3 +1,6 @@
+## 0.3.7 - New feature
+- New highlightSelectionExcludeScopes setting allow you to exclude highlight selection by scopes.
+
 ## 0.3.6 - FIX
 - Explicitly pass editor reference to highlightSelection() so that rapid pane change at Atom startup don't cause error.
 

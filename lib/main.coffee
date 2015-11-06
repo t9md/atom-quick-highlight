@@ -20,6 +20,14 @@ Config =
     type: 'integer'
     default: 2
     description: "Minimum length of selection to be highlight"
+  highlightSelectionExcludeScopes:
+    order: 7
+    type: 'array'
+    items:
+      type: 'string'
+    default: [
+      'vim-mode-plus.visual-mode.blockwise',
+    ]
   displayCountOnStatusBar:
     order: 11
     type: 'boolean'
@@ -70,6 +78,9 @@ getView = (model) ->
 getVisibleEditor = ->
   (e for p in atom.workspace.getPanes() when e = p.getActiveEditor())
 
+getConfig = (name) ->
+  atom.config.get "quick-highlight.#{name}"
+
 getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
   [startRow, endRow] = editorElement.getVisibleRowRange().map (row) ->
@@ -88,7 +99,7 @@ module.exports =
     @decorationsByEditor = new Map
     @keywords = getKeywordManager()
 
-    if atom.config.get 'quick-highlight.displayCountOnStatusBar'
+    if getConfig('displayCountOnStatusBar')
       @statusBarManager = new StatusBarManager
 
     subs.add atom.commands.add 'atom-text-editor',
@@ -133,8 +144,21 @@ module.exports =
     d.getMarker().destroy() for d in @selectionDecorations ? []
     @selectionDecorations = null
 
+  shouldExcludeEditor: (editor) ->
+    editorElement = getView(editor)
+    scopes = getConfig('highlightSelectionExcludeScopes')
+    classes = scopes.map (scope) -> scope.split('.')
+
+    for classNames in classes
+      containsCount = 0
+      for className in classNames
+        containsCount += 1 if editorElement.classList.contains(className)
+      return true if containsCount is classNames.length
+    false
+
   highlightSelection: (editor) ->
     @clearSelectionDecoration()
+    return if @shouldExcludeEditor(editor)
     selection = editor.getLastSelection()
     return unless @needToHighlightSelection(selection)
     keyword = selection.getText()
@@ -143,10 +167,10 @@ module.exports =
 
   needToHighlightSelection: (selection) ->
     switch
-      when (not atom.config.get('quick-highlight.highlightSelection'))
+      when (not getConfig('highlightSelection'))
           , selection.isEmpty()
           , not selection.getBufferRange().isSingleLine()
-          , selection.getText().length < atom.config.get('quick-highlight.highlightSelectionMinimumLength')
+          , selection.getText().length < getConfig('highlightSelectionMinimumLength')
           , allWhiteSpaceRegExp.test(selection.getText())
         false
       else
@@ -180,7 +204,7 @@ module.exports =
   renderEditor: (editor) ->
     return unless scanRange = getVisibleBufferRange(editor)
     decorations = []
-    decorationStyle = atom.config.get('quick-highlight.decorate')
+    decorationStyle = getConfig('decorate')
     @keywords.each (keyword, color) =>
       color = "#{decorationStyle}-#{color}"
       decorations = decorations.concat @highlightKeyword(editor, scanRange, keyword, color)
