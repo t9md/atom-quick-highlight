@@ -1,3 +1,6 @@
+## 0.3.8 - WIP
+- No longer use TextEditor constructor directly work around warning from Atom 1.2.0
+
 ## 0.3.7 - New feature
 - New highlightSelectionExcludeScopes setting allow you to exclude highlight selection by scopes.
 

@@ -1,4 +1,4 @@
-{TextEditor, CompositeDisposable, Disposable, Emitter, Range} = require 'atom'
+{CompositeDisposable, Disposable, Emitter, Range} = require 'atom'
 _ = require 'underscore-plus'
 StatusBarManager = require './status-bar-manager'
 
@@ -136,7 +136,7 @@ module.exports =
 
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
       @statusBarManager?.clear()
-      if item instanceof TextEditor
+      if item?.getText?
         @refreshEditor(item)
         @highlightSelection(item)
 
