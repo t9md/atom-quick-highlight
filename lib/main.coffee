@@ -252,7 +252,6 @@ module.exports =
       class: options.class
 
   getCountForKeyword: (editor, keyword) ->
-    console.log "called"
     count = 0
     editor.scan ///#{_.escapeRegExp(keyword)}///g, -> count++
     count
