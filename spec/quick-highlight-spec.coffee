@@ -278,6 +278,18 @@ describe "quick-highlight", ->
         expect(editor.getSelectedText()).toBe "orange"
         expect(getDecorations(editor)).toHaveLength 0
 
+    describe "highlightSelectionDelay", ->
+      beforeEach ->
+        setConfig('highlightSelectionDelay', 300)
+
+      it "highlight selection after specified delay", ->
+        dispatchCommand('editor:select-word')
+        advanceClock(150)
+        expect(editor.getSelectedText()).toBe "orange"
+        expect(getDecorations(editor)).toHaveLength 0
+        advanceClock(150)
+        expect(editor).toHaveDecorations color: 'selection', length: 3, text: 'orange'
+
   describe "editor is scrolled", ->
     [editor4, editorElement4] = []
     lineHeightPx = 10

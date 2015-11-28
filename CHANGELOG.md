@@ -1,3 +1,6 @@
+## 0.3.9 - Improve
+- New: config parameter highlightSelectionDelay suggested by @PaulPorfiroff.
+
 ## 0.3.8 - FIX
 - No longer use TextEditor constructor directly work around warning from Atom 1.2.0
 

@@ -28,6 +28,11 @@ Config =
     default: [
       'vim-mode-plus.visual-mode.blockwise',
     ]
+  highlightSelectionDelay:
+    order: 8
+    type: 'integer'
+    default: 100
+    description: "Delay(ms) before start to highlight selection when selection changed"
   displayCountOnStatusBar:
     order: 11
     type: 'boolean'
@@ -81,11 +86,14 @@ getVisibleEditor = ->
 getConfig = (name) ->
   atom.config.get "quick-highlight.#{name}"
 
+observeConfig = (name, fn) ->
+  atom.config.observe "quick-highlight.#{name}", fn
+
 getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
   [startRow, endRow] = editorElement.getVisibleRowRange().map (row) ->
     editor.bufferRowForScreenRow row
-  # FIXME: editorElement.getVisibleRowRange() return [undefined, undefined] when
+  # FIXME: editorElement.getVisibleRowRange() return [NaN, NaN] when
   # it called to editorElement still not yet attached.
   return null  if (isNaN(startRow) or isNaN(endRow))
   new Range([startRow, 0], [endRow, Infinity])
@@ -98,13 +106,16 @@ module.exports =
     @emitter = new Emitter
     @decorationsByEditor = new Map
     @keywords = getKeywordManager()
+    @statusBarManager = new StatusBarManager
 
-    if getConfig('displayCountOnStatusBar')
-      @statusBarManager = new StatusBarManager
 
     subs.add atom.commands.add 'atom-text-editor',
       'quick-highlight:toggle': => @toggle()
       'quick-highlight:clear':  => @clear()
+
+    debouncedhighlightSelection = null
+    observeConfig 'highlightSelectionDelay', (delay) =>
+      debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), delay)
 
     subs.add atom.workspace.observeTextEditors (editor) =>
       editorSubs = new CompositeDisposable
@@ -122,7 +133,6 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
-      debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), 100)
       editorSubs.add editor.onDidChangeSelectionRange ({selection}) ->
         debouncedhighlightSelection(editor) if selection.isLastSelection()
       editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection(editor)
@@ -135,8 +145,8 @@ module.exports =
       subs.add editorSubs
 
     subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
-      @statusBarManager?.clear()
-      if item?.getText?
+      @statusBarManager.clear()
+      if item?.getText? # Check if instance of TextEditor
         @refreshEditor(item)
         @highlightSelection(item)
 
@@ -189,10 +199,11 @@ module.exports =
 
     if @keywords.has(keyword)
       @keywords.delete(keyword)
-      @statusBarManager?.clear()
+      @statusBarManager.clear()
     else
       @keywords.add(keyword)
-      @statusBarManager?.update @getCountForKeyword(editor, keyword)
+      if getConfig('displayCountOnStatusBar')
+        @statusBarManager.update @getCountForKeyword(editor, keyword)
 
     @refreshEditor(e) for e in getVisibleEditor()
     editor.setCursorBufferPosition point
@@ -229,7 +240,7 @@ module.exports =
       @clearEditor editor
     @decorationsByEditor.clear()
     @keywords.reset()
-    @statusBarManager?.clear()
+    @statusBarManager.clear()
 
   decorateRange: (editor, range, options) ->
     marker = editor.markBufferRange range,
@@ -241,12 +252,12 @@ module.exports =
       class: options.class
 
   getCountForKeyword: (editor, keyword) ->
+    console.log "called"
     count = 0
     editor.scan ///#{_.escapeRegExp(keyword)}///g, -> count++
     count
 
   consumeStatusBar: (statusBar) ->
-    return unless @statusBarManager?
     @statusBarManager.initialize(statusBar)
     @statusBarManager.attach()
     @subscriptions.add new Disposable =>
