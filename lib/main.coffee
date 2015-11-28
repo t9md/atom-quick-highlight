@@ -28,6 +28,11 @@ Config =
     default: [
       'vim-mode-plus.visual-mode.blockwise',
     ]
+  highlightSelectionThrottle:
+    order: 8
+    type: 'integer'
+    default: 100
+    description: "Delay before triggering highlighting after selection has been modified (in ms)"
   displayCountOnStatusBar:
     order: 11
     type: 'boolean'
@@ -80,6 +85,8 @@ getVisibleEditor = ->
 
 getConfig = (name) ->
   atom.config.get "quick-highlight.#{name}"
+observeConfig = (name, callback) ->
+  atom.config.observe "quick-highlight.#{name}", callback
 
 getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
@@ -122,7 +129,10 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
-      debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), 100)
+      debouncedhighlightSelection = null
+      subs.add observeConfig 'highlightSelectionThrottle', (delay) =>
+        debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), delay)
+
       editorSubs.add editor.onDidChangeSelectionRange ({selection}) ->
         debouncedhighlightSelection(editor) if selection.isLastSelection()
       editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection(editor)
