@@ -10,7 +10,7 @@ Config =
     type: 'string'
     default: 'box'
     enum: ['box', 'highlight']
-    description: "Decoation style for highlight"
+    description: "Decoration style for highlight"
   highlightSelection:
     order: 5
     type: 'boolean'
