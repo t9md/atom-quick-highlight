@@ -10,7 +10,7 @@ Config =
     type: 'string'
     default: 'box'
     enum: ['box', 'highlight']
-    description: "Decoation style for highlight"
+    description: "Decoration style for highlight"
   highlightSelection:
     order: 5
     type: 'boolean'
@@ -28,6 +28,16 @@ Config =
     default: [
       'vim-mode-plus.visual-mode.blockwise',
     ]
+  highlightSelectionThrottle:
+    order: 8
+    type: 'integer'
+    default: 100
+    description: "Delay before triggering highlighting after selection has been modified (in ms)"
+  highlightSelectionExcludeUnique:
+    order: 9
+    type: 'boolean'
+    default: false
+    description: "Don't highlight selection if only one occurence found"
   displayCountOnStatusBar:
     order: 11
     type: 'boolean'
@@ -80,6 +90,8 @@ getVisibleEditor = ->
 
 getConfig = (name) ->
   atom.config.get "quick-highlight.#{name}"
+observeConfig = (name, callback) ->
+  atom.config.observe "quick-highlight.#{name}", callback
 
 getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
@@ -122,7 +134,10 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
-      debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), 100)
+      debouncedhighlightSelection = null
+      subs.add observeConfig 'highlightSelectionThrottle', (delay) =>
+        debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), delay)
+
       editorSubs.add editor.onDidChangeSelectionRange ({selection}) ->
         debouncedhighlightSelection(editor) if selection.isLastSelection()
       editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection(editor)
@@ -160,18 +175,19 @@ module.exports =
     @clearSelectionDecoration()
     return if @shouldExcludeEditor(editor)
     selection = editor.getLastSelection()
-    return unless @needToHighlightSelection(selection)
+    return unless @needToHighlightSelection(editor, selection)
     keyword = selection.getText()
     return unless scanRange = getVisibleBufferRange(editor)
     @selectionDecorations = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
 
-  needToHighlightSelection: (selection) ->
+  needToHighlightSelection: (editor, selection) ->
     switch
       when (not getConfig('highlightSelection'))
           , selection.isEmpty()
           , not selection.getBufferRange().isSingleLine()
           , selection.getText().length < getConfig('highlightSelectionMinimumLength')
           , allWhiteSpaceRegExp.test(selection.getText())
+          , getConfig('highlightSelectionExcludeUnique') and @getCountForKeyword(editor, selection.getText()) <= 1
         false
       else
         true

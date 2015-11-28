@@ -250,6 +250,25 @@ describe "quick-highlight", ->
       expect(editor.getLastSelection().isEmpty()).toBe false
       expect(getDecorations(editor)).toHaveLength 0
 
+    describe "when highlightSelectionExcludeUnique is set", ->
+      beforeEach ->
+        setConfig('highlightSelectionExcludeUnique', true)
+        editor.setText """
+          orange not
+          orange
+          """
+
+      it "won't decorate when only one occurence of selection is found", ->
+        dispatchCommand('editor:select-to-end-of-line')
+        expect(editor.getSelectedText()).toBe 'orange not'
+        advanceClock(150)
+        expect(getDecorations(editor)).toHaveLength 0
+
+      it "will decorate multiple occurences of selection", ->
+        dispatchCommand('editor:select-word')
+        advanceClock(150)
+        expect(editor).toHaveDecorations length: 2, color: 'selection', text: 'orange'
+
     it "won't decorate when highlightSelection is disabled", ->
       setConfig('highlightSelection', false)
       dispatchCommand('editor:select-word')
