@@ -91,7 +91,11 @@ observeConfig = (name, fn) ->
 
 getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
-  [startRow, endRow] = editorElement.getVisibleRowRange().map (row) ->
+  unless visibleRowRange = editorElement.getVisibleRowRange()
+    # When editorElement.component is not yet available it return null
+    # Hope this guard fix issue https://github.com/t9md/atom-quick-highlight/issues/7
+    return null
+  [startRow, endRow] = visibleRowRange.map (row) ->
     editor.bufferRowForScreenRow row
   # FIXME: editorElement.getVisibleRowRange() return [NaN, NaN] when
   # it called to editorElement still not yet attached.

@@ -1,3 +1,6 @@
+## 0.3.10 - FIX
+- Guard for `editorElement.getVisibleRowRange()` return `null` at initialization #7
+
 ## 0.3.9 - Improve
 - New: config parameter highlightSelectionDelay suggested by @PaulPorfiroff.
 
