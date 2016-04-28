@@ -137,8 +137,9 @@ module.exports =
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
 
-      editorSubs.add editor.onDidChangeSelectionRange ({selection}) ->
-        debouncedhighlightSelection(editor) if selection.isLastSelection()
+      editorSubs.add editor.onDidChangeSelectionRange ({selection}) =>
+        if selection.isLastSelection() and not @isLocked()
+          debouncedhighlightSelection(editor)
       editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection(editor)
 
       editorSubs.add editor.onDidDestroy =>
@@ -153,6 +154,9 @@ module.exports =
       if item?.getText? # Check if instance of TextEditor
         @refreshEditor(item)
         @highlightSelection(item)
+
+  subscribe: (args...) ->
+    @subscriptions.add args...
 
   clearSelectionDecoration: ->
     d.getMarker().destroy() for d in @selectionDecorations ? []
@@ -196,11 +200,31 @@ module.exports =
     @subscriptions.dispose()
     {@decorationsByEditor, @subscriptions, @keywords} = {}
 
-  toggle: ->
-    editor = getEditor()
-    point = editor.getCursorBufferPosition()
-    keyword = editor.getSelectedText() or editor.getWordUnderCursor()
+  locked: false
+  isLocked: ->
+    @locked
 
+  withLock: (fn) ->
+    @locked = true
+    fn()
+    @locked = false
+
+  getKeywordUnderCursor: ->
+    editor = getEditor()
+    selection = editor.getLastSelection()
+    {cursor} = selection
+    point = cursor.getBufferPosition()
+    if selection.isEmpty()
+      @withLock -> selection.selectWord()
+
+    word = selection.getText()
+    unless cursor.getBufferPosition().isEqual(point)
+      @withLock -> cursor.setBufferPosition(point)
+    word
+
+  toggle: (keyword) ->
+    keyword ?= @getKeywordUnderCursor()
+    editor = getEditor()
     if @keywords.has(keyword)
       @keywords.delete(keyword)
       @statusBarManager.clear()
@@ -208,9 +232,7 @@ module.exports =
       @keywords.add(keyword)
       if getConfig('displayCountOnStatusBar')
         @statusBarManager.update @getCountForKeyword(editor, keyword)
-
     @refreshEditor(e) for e in getVisibleEditor()
-    editor.setCursorBufferPosition point
 
   refreshEditor: (editor) ->
     @clearEditor editor
@@ -266,3 +288,16 @@ module.exports =
     @subscriptions.add new Disposable =>
       @statusBarManager.detach()
       @statusBarManager = null
+
+  consumeVim: ({Base}) ->
+    toggle = @toggle.bind(this)
+    class QuickHighlight extends Base.getClass('Operator')
+      @commandPrefix: 'vim-mode-plus-user'
+      flashTarget: false
+      keepCursorPosition: true
+
+      mutateSelection: (selection) ->
+        toggle(selection.getText())
+        @restorePoint(selection)
+
+    @subscribe QuickHighlight.registerCommand()

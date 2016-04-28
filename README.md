@@ -10,6 +10,7 @@
 
 - `quick-highlight:toggle` toggle highlight for selected or cursor word.
 - `quick-highlight:clear` clear all highlight.
+- `vim-mode-plus-user:quick-highlight` Operator for [vim-mode-plus](https://atom.io/packages/vim-mode-plus).
 
 # Keymap
 
@@ -35,7 +36,19 @@ e.g.
 'atom-text-editor.vim-mode-plus.normal-mode, atom-text-editor.vim-mode-plus.visual-mode':
   'space m': 'quick-highlight:toggle'
   'space M': 'quick-highlight:clear'
+  'g m': 'vim-mode-plus-user:quick-highlight'
 ```
+
+## vim-mode-plus operator
+
+You can quick-highlight with combination of any motion, text-object.  
+Since it's operator, yes can repat with `.`.
+
+e.g.
+- `gmiw`: highlight `inner-word`.
+- `gmil`: highlight `inner-line`.
+- `gmi'`: highlight `inner-single-quote`.
+- `v2lgm`: highlight three visually selected character..
 
 # Display found count on StatusBar
 

@@ -13,6 +13,11 @@
       "versions": {
         "^1.0.0": "consumeStatusBar"
       }
+    },
+    "vim-mode-plus": {
+      "versions": {
+        "^0.1.0": "consumeVim"
+      }
     }
   },
   "dependencies": {

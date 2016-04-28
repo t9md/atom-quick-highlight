@@ -1,3 +1,7 @@
+## 0.4.0
+- Add operator command for vim-mode-plus, `vim-mode-plus-user:quick-highlight`.
+- Improve accuracy for picking word under cursor by using `selection.selectWord()`.
+
 ## 0.3.10 - FIX
 - Guard for `editorElement.getVisibleRowRange()` return `null` at initialization #7
 
