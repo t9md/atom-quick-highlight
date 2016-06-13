@@ -127,14 +127,15 @@ module.exports =
       editorSubs.add editor.onDidStopChanging =>
         return unless getEditor() is editor
         URI = editor.getURI()
-        @refreshEditor(e) for e in getVisibleEditors() when (e.getURI() is URI)
+        for e in getVisibleEditors() when (e.getURI() is URI)
+          @refreshEditor(e)
 
       editorElement = getView(editor)
       editorSubs.add(editorElement.onDidChangeScrollTop => @refreshEditor(editor))
 
       # [FIXME]
-      # @refreshEditor depend on editorElement.getVisibleRowRange() but it return
-      # [undefined, undefined] when it called on editorElement not attached yet.
+      # @refreshEditor depends on editorElement.getVisibleRowRange() but it return
+      # [undefined, undefined] when it called on editorElement which is not attached yet.
       # So we separately need to cover this case from Atom v1.1.0
       editorSubs.add(editorElement.onDidAttach => @refreshEditor(editor))
 
@@ -219,14 +220,17 @@ module.exports =
     editor = getEditor()
     selection = editor.getLastSelection()
     {cursor} = selection
-    point = cursor.getBufferPosition()
-    if selection.isEmpty()
-      @withLock -> selection.selectWord()
 
-    word = selection.getText()
-    unless cursor.getBufferPosition().isEqual(point)
-      @withLock -> cursor.setBufferPosition(point)
-    word
+    if selection.isEmpty()
+      text = null
+      point = cursor.getBufferPosition()
+      @withLock ->
+        selection.selectWord()
+        text = selection.getText()
+        cursor.setBufferPosition(point)
+      text
+    else
+      selection.getText()
 
   toggle: (keyword) ->
     keyword ?= @getKeywordUnderCursor()
@@ -250,7 +254,7 @@ module.exports =
     decorationStyle = getConfig('decorate')
     @keywords.each (keyword, color) =>
       color = "#{decorationStyle}-#{color}"
-      decorations = decorations.concat @highlightKeyword(editor, scanRange, keyword, color)
+      decorations = decorations.concat(@highlightKeyword(editor, scanRange, keyword, color))
     @decorationsByEditor.set(editor, decorations)
 
   highlightKeyword: (editor, scanRange, keyword, color) ->
