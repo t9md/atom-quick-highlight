@@ -56,23 +56,23 @@ Config =
 
 # Utils
 # -------------------------
-getColorProvider = (colors) ->
-  index = -1
-  reset: -> index = -1
-  getNext: -> colors[index = (index + 1) % colors.length]
-
-COLORS = ['01', '02', '03', '04', '05', '06', '07']
-getKeywordManager = ->
-  colors = getColorProvider(COLORS)
-  kw2color = Object.create(null)
-  add:      (keyword) -> kw2color[keyword] = colors.getNext()
-  delete:   (keyword) -> delete kw2color[keyword]
-  has:      (keyword) -> keyword of kw2color
-  reset:    (keyword) ->
-    kw2color = Object.create(null)
-    colors.reset()
+class KeywordManager
+  colors: ['01', '02', '03', '04', '05', '06', '07']
+  index: null
+  constructor: ->
+    @reset()
+  add: (keyword) ->
+    @index = (@index + 1) % @colors.length
+    @kw2color[keyword] = @colors[@index]
+  delete: (keyword) ->
+    delete @kw2color[keyword]
+  has: (keyword) ->
+    keyword of @kw2color
+  reset: (keyword) ->
+    @kw2color = Object.create(null)
+    @index = -1
   each: (fn) ->
-    fn(keyword, color) for keyword, color of kw2color
+    fn(keyword, color) for keyword, color of @kw2color
 
 getEditor = ->
   atom.workspace.getActiveTextEditor()
@@ -80,14 +80,14 @@ getEditor = ->
 getView = (model) ->
   atom.views.getView(model)
 
-getVisibleEditor = ->
-  (e for p in atom.workspace.getPanes() when e = p.getActiveEditor())
+getVisibleEditors = ->
+  (editor for pane in atom.workspace.getPanes() when editor = pane.getActiveEditor())
 
 getConfig = (name) ->
-  atom.config.get "quick-highlight.#{name}"
+  atom.config.get("quick-highlight.#{name}")
 
 observeConfig = (name, fn) ->
-  atom.config.observe "quick-highlight.#{name}", fn
+  atom.config.observe("quick-highlight.#{name}", fn)
 
 getVisibleBufferRange = (editor) ->
   editorElement = getView(editor)
@@ -95,61 +95,62 @@ getVisibleBufferRange = (editor) ->
     # When editorElement.component is not yet available it return null
     # Hope this guard fix issue https://github.com/t9md/atom-quick-highlight/issues/7
     return null
+
   [startRow, endRow] = visibleRowRange.map (row) ->
-    editor.bufferRowForScreenRow row
+    editor.bufferRowForScreenRow(row)
+
   # FIXME: editorElement.getVisibleRowRange() return [NaN, NaN] when
   # it called to editorElement still not yet attached.
-  return null  if (isNaN(startRow) or isNaN(endRow))
+  return null if (isNaN(startRow) or isNaN(endRow))
   new Range([startRow, 0], [endRow, Infinity])
 
 module.exports =
   config: Config
 
   activate: (state) ->
-    @subscriptions = subs = new CompositeDisposable
+    @subscriptions = new CompositeDisposable
     @emitter = new Emitter
     @decorationsByEditor = new Map
-    @keywords = getKeywordManager()
+    @keywords = new KeywordManager()
     @statusBarManager = new StatusBarManager
 
-
-    subs.add atom.commands.add 'atom-text-editor',
+    @subscribe atom.commands.add 'atom-text-editor',
       'quick-highlight:toggle': => @toggle()
-      'quick-highlight:clear':  => @clear()
+      'quick-highlight:clear': => @clear()
 
     debouncedhighlightSelection = null
     observeConfig 'highlightSelectionDelay', (delay) =>
       debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), delay)
 
-    subs.add atom.workspace.observeTextEditors (editor) =>
+    @subscribe atom.workspace.observeTextEditors (editor) =>
       editorSubs = new CompositeDisposable
       editorSubs.add editor.onDidStopChanging =>
         return unless getEditor() is editor
         URI = editor.getURI()
-        @refreshEditor(e) for e in getVisibleEditor() when (e.getURI() is URI)
+        @refreshEditor(e) for e in getVisibleEditors() when (e.getURI() is URI)
 
       editorElement = getView(editor)
-      editorSubs.add editorElement.onDidChangeScrollTop => @refreshEditor(editor)
+      editorSubs.add(editorElement.onDidChangeScrollTop => @refreshEditor(editor))
 
       # [FIXME]
       # @refreshEditor depend on editorElement.getVisibleRowRange() but it return
       # [undefined, undefined] when it called on editorElement not attached yet.
       # So we separately need to cover this case from Atom v1.1.0
-      editorSubs.add editorElement.onDidAttach => @refreshEditor(editor)
+      editorSubs.add(editorElement.onDidAttach => @refreshEditor(editor))
 
       editorSubs.add editor.onDidChangeSelectionRange ({selection}) =>
         if selection.isLastSelection() and not @isLocked()
           debouncedhighlightSelection(editor)
-      editorSubs.add editorElement.onDidChangeScrollTop => @highlightSelection(editor)
+      editorSubs.add(editorElement.onDidChangeScrollTop => @highlightSelection(editor))
 
       editorSubs.add editor.onDidDestroy =>
-        @clearEditor editor
+        @clearEditor(editor)
         editorSubs.dispose()
-        subs.remove(editorSubs)
+        @unsubscribe(editorSubs)
 
-      subs.add editorSubs
+      @subscribe(editorSubs)
 
-    subs.add atom.workspace.onDidChangeActivePaneItem (item) =>
+    @subscribe atom.workspace.onDidChangeActivePaneItem (item) =>
       @statusBarManager.clear()
       if item?.getText? # Check if instance of TextEditor
         @refreshEditor(item)
@@ -157,6 +158,9 @@ module.exports =
 
   subscribe: (args...) ->
     @subscriptions.add args...
+
+  unsubscribe: (arg) ->
+    @subscriptions.remove(arg)
 
   clearSelectionDecoration: ->
     d.getMarker().destroy() for d in @selectionDecorations ? []
@@ -205,9 +209,11 @@ module.exports =
     @locked
 
   withLock: (fn) ->
-    @locked = true
-    fn()
-    @locked = false
+    try
+      @locked = true
+      fn()
+    finally
+      @locked = false
 
   getKeywordUnderCursor: ->
     editor = getEditor()
@@ -231,12 +237,12 @@ module.exports =
     else
       @keywords.add(keyword)
       if getConfig('displayCountOnStatusBar')
-        @statusBarManager.update @getCountForKeyword(editor, keyword)
-    @refreshEditor(e) for e in getVisibleEditor()
+        @statusBarManager.update(@getCountForKeyword(editor, keyword))
+    @refreshEditor(editor) for editor in getVisibleEditors()
 
   refreshEditor: (editor) ->
-    @clearEditor editor
-    @renderEditor editor
+    @clearEditor(editor)
+    @renderEditor(editor)
 
   renderEditor: (editor) ->
     return unless scanRange = getVisibleBufferRange(editor)
@@ -249,11 +255,11 @@ module.exports =
 
   highlightKeyword: (editor, scanRange, keyword, color) ->
     return [] unless editor.isAlive()
-    klass = "quick-highlight #{color}"
+    classNames = "quick-highlight #{color}"
     pattern = ///#{_.escapeRegExp(keyword)}///g
     decorations = []
     editor.scanInBufferRange pattern, scanRange, ({range}) =>
-      decorations.push @decorateRange(editor, range, {class: klass})
+      decorations.push(@decorateRange(editor, range, {classNames}))
     decorations
 
   clearEditor: (editor) ->
@@ -263,23 +269,18 @@ module.exports =
 
   clear: ->
     @decorationsByEditor.forEach (decorations, editor) =>
-      @clearEditor editor
+      @clearEditor(editor)
     @decorationsByEditor.clear()
     @keywords.reset()
     @statusBarManager.clear()
 
-  decorateRange: (editor, range, options) ->
-    marker = editor.markBufferRange range,
-      invalidate: 'inside'
-      persistent: false
-
-    editor.decorateMarker marker,
-      type: 'highlight'
-      class: options.class
+  decorateRange: (editor, range, {classNames}) ->
+    marker = editor.markBufferRange(range, invalidate: 'inside')
+    editor.decorateMarker(marker, {type: 'highlight', class: classNames})
 
   getCountForKeyword: (editor, keyword) ->
     count = 0
-    editor.scan ///#{_.escapeRegExp(keyword)}///g, -> count++
+    editor.scan(///#{_.escapeRegExp(keyword)}///g, -> count++)
     count
 
   consumeStatusBar: (statusBar) ->
@@ -300,4 +301,4 @@ module.exports =
         toggle(selection.getText())
         @restorePoint(selection)
 
-    @subscribe QuickHighlight.registerCommand()
+    @subscribe(QuickHighlight.registerCommand())

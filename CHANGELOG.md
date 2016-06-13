@@ -1,3 +1,7 @@
+## 0.5.0
+- Fix: Deprecation warning from Atom1.9.0-beta0.
+- Improve: Refactoring
+
 ## 0.4.0
 - Add operator command for vim-mode-plus, `vim-mode-plus-user:quick-highlight`.
 - Improve accuracy for picking word under cursor by using `selection.selectWord()`.
