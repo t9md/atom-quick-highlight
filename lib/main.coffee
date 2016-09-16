@@ -299,10 +299,9 @@ module.exports =
     class QuickHighlight extends Base.getClass('Operator')
       @commandPrefix: 'vim-mode-plus-user'
       flashTarget: false
-      keepCursorPosition: true
+      stayAtSamePosition: true
 
       mutateSelection: (selection) ->
         toggle(selection.getText())
-        @restorePoint(selection)
 
     @subscribe(QuickHighlight.registerCommand())
