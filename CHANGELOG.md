@@ -1,3 +1,6 @@
+## 0.6.0
+- Fix to follow upstream(`vim-mode-plus`) change.
+
 ## 0.5.0
 - Fix: Deprecation warning from Atom1.9.0-beta0.
 - Improve: Refactoring
