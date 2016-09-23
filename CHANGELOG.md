@@ -1,3 +1,6 @@
+## 0.6.1
+- Set `z-index` for box highlight to win selection marker.
+
 ## 0.6.0
 - Fix to follow upstream(`vim-mode-plus`) change.
 
