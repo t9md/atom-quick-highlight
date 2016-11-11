@@ -45,10 +45,10 @@ You can quick-highlight with combination of any motion, text-object.
 Since it's operator, yes can repat with `.`.
 
 e.g.
-- `gmiw`: highlight `inner-word`.
-- `gmil`: highlight `inner-line`.
-- `gmi'`: highlight `inner-single-quote`.
-- `v2lgm`: highlight three visually selected character..
+- `g m i w`: highlight `inner-word`.
+- `g m i l`: highlight `inner-line`.
+- `g m i'`: highlight `inner-single-quote`.
+- `v 2 l g m`: highlight three visually selected character..
 
 # Display found count on StatusBar
 
