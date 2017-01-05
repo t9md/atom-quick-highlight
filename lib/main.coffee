@@ -1,58 +1,15 @@
 {CompositeDisposable, Disposable, Emitter, Range} = require 'atom'
 _ = require 'underscore-plus'
 StatusBarManager = require './status-bar-manager'
+settings = require './settings'
 
-allWhiteSpaceRegExp = /^\s*$/
-
-Config =
-  decorate:
-    order: 1
-    type: 'string'
-    default: 'box'
-    enum: ['box', 'highlight']
-    description: "Decoation style for highlight"
-  highlightSelection:
-    order: 5
-    type: 'boolean'
-    default: true
-  highlightSelectionMinimumLength:
-    order: 6
-    type: 'integer'
-    default: 2
-    description: "Minimum length of selection to be highlight"
-  highlightSelectionExcludeScopes:
-    order: 7
-    type: 'array'
-    items:
-      type: 'string'
-    default: [
-      'vim-mode-plus.visual-mode.blockwise',
-    ]
-  highlightSelectionDelay:
-    order: 8
-    type: 'integer'
-    default: 100
-    description: "Delay(ms) before start to highlight selection when selection changed"
-  displayCountOnStatusBar:
-    order: 11
-    type: 'boolean'
-    default: true
-    description: "Show found count on StatusBar"
-  countDisplayPosition:
-    order: 12
-    type: 'string'
-    default: 'Left'
-    enum: ['Left', 'Right']
-  countDisplayPriority:
-    order: 13
-    type: 'integer'
-    default: 120
-    description: "Lower priority get closer position to the edges of the window"
-  countDisplayStyles:
-    order: 14
-    type: 'string'
-    default: 'badge icon icon-location'
-    description: "Style class for count span element. See `styleguide:show`."
+{
+  matchScope
+  getVisibleEditors
+  getVisibleBufferRange
+  getCountForKeyword
+  getCursorWord
+} = require './utils'
 
 # Utils
 # -------------------------
@@ -74,38 +31,8 @@ class KeywordManager
   each: (fn) ->
     fn(keyword, color) for keyword, color of @kw2color
 
-getEditor = ->
-  atom.workspace.getActiveTextEditor()
-
-getView = (model) ->
-  atom.views.getView(model)
-
-getVisibleEditors = ->
-  (editor for pane in atom.workspace.getPanes() when editor = pane.getActiveEditor())
-
-getConfig = (name) ->
-  atom.config.get("quick-highlight.#{name}")
-
-observeConfig = (name, fn) ->
-  atom.config.observe("quick-highlight.#{name}", fn)
-
-getVisibleBufferRange = (editor) ->
-  editorElement = getView(editor)
-  unless visibleRowRange = editorElement.getVisibleRowRange()
-    # When editorElement.component is not yet available it return null
-    # Hope this guard fix issue https://github.com/t9md/atom-quick-highlight/issues/7
-    return null
-
-  [startRow, endRow] = visibleRowRange.map (row) ->
-    editor.bufferRowForScreenRow(row)
-
-  # FIXME: editorElement.getVisibleRowRange() return [NaN, NaN] when
-  # it called to editorElement still not yet attached.
-  return null if (isNaN(startRow) or isNaN(endRow))
-  new Range([startRow, 0], [endRow, Infinity])
-
 module.exports =
-  config: Config
+  config: settings.config
 
   activate: (state) ->
     @subscriptions = new CompositeDisposable
@@ -114,24 +41,25 @@ module.exports =
     @keywords = new KeywordManager()
     @statusBarManager = new StatusBarManager
 
-    @subscribe atom.commands.add 'atom-text-editor',
-      'quick-highlight:toggle': => @toggle()
+    toggle = @toggle.bind(this)
+    @subscribe atom.commands.add 'atom-text-editor:not([mini])',
+      'quick-highlight:toggle': -> toggle(@getModel())
       'quick-highlight:clear': => @clear()
 
     debouncedhighlightSelection = null
-    observeConfig 'highlightSelectionDelay', (delay) =>
+    settings.observe 'highlightSelectionDelay', (delay) =>
       debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), delay)
 
     @subscribe atom.workspace.observeTextEditors (editor) =>
       editorSubs = new CompositeDisposable
       editorSubs.add editor.onDidStopChanging =>
-        return unless getEditor() is editor
+        return unless atom.workspace.getActiveTextEditor() is editor
         URI = editor.getURI()
         for e in getVisibleEditors() when (e.getURI() is URI)
           @refreshEditor(e)
 
-      editorElement = getView(editor)
-      editorSubs.add(editorElement.onDidChangeScrollTop => @refreshEditor(editor))
+      editorElement = editor.element
+      editorSubs.add(editor.element.onDidChangeScrollTop => @refreshEditor(editor))
 
       # [FIXME]
       # @refreshEditor depends on editorElement.getVisibleRowRange() but it return
@@ -168,16 +96,9 @@ module.exports =
     @selectionDecorations = null
 
   shouldExcludeEditor: (editor) ->
-    editorElement = getView(editor)
-    scopes = getConfig('highlightSelectionExcludeScopes')
-    classes = scopes.map (scope) -> scope.split('.')
-
-    for classNames in classes
-      containsCount = 0
-      for className in classNames
-        containsCount += 1 if editorElement.classList.contains(className)
-      return true if containsCount is classNames.length
-    false
+    scopes = settings.get('highlightSelectionExcludeScopes')
+    scopes.some (scope) ->
+      matchScope(editor.element, scope)
 
   highlightSelection: (editor) ->
     @clearSelectionDecoration()
@@ -190,11 +111,11 @@ module.exports =
 
   needToHighlightSelection: (selection) ->
     switch
-      when (not getConfig('highlightSelection'))
+      when (not settings.get('highlightSelection'))
           , selection.isEmpty()
           , not selection.getBufferRange().isSingleLine()
-          , selection.getText().length < getConfig('highlightSelectionMinimumLength')
-          , allWhiteSpaceRegExp.test(selection.getText())
+          , selection.getText().length < settings.get('highlightSelectionMinimumLength')
+          , /[^\S]/.test(selection.getText())
         false
       else
         true
@@ -212,35 +133,19 @@ module.exports =
   withLock: (fn) ->
     try
       @locked = true
-      fn()
+      value = fn()
     finally
       @locked = false
+      value
 
-  getKeywordUnderCursor: ->
-    editor = getEditor()
-    selection = editor.getLastSelection()
-    {cursor} = selection
-
-    if selection.isEmpty()
-      text = null
-      point = cursor.getBufferPosition()
-      @withLock ->
-        selection.selectWord()
-        text = selection.getText()
-        cursor.setBufferPosition(point)
-      text
-    else
-      selection.getText()
-
-  toggle: (keyword) ->
-    keyword ?= @getKeywordUnderCursor()
-    editor = getEditor()
+  toggle: (editor, keyword) ->
+    keyword ?= editor.getSelectedText() or @withLock(-> getCursorWord(editor))
     if @keywords.has(keyword)
       @keywords.delete(keyword)
       @statusBarManager.clear()
     else
       @keywords.add(keyword)
-      if getConfig('displayCountOnStatusBar')
+      if settings.get('displayCountOnStatusBar')
         @statusBarManager.update(@getCountForKeyword(editor, keyword))
     @refreshEditor(editor) for editor in getVisibleEditors()
 
@@ -251,7 +156,7 @@ module.exports =
   renderEditor: (editor) ->
     return unless scanRange = getVisibleBufferRange(editor)
     decorations = []
-    decorationStyle = getConfig('decorate')
+    decorationStyle = settings.get('decorate')
     @keywords.each (keyword, color) =>
       color = "#{decorationStyle}-#{color}"
       decorations = decorations.concat(@highlightKeyword(editor, scanRange, keyword, color))
@@ -283,9 +188,7 @@ module.exports =
     editor.decorateMarker(marker, {type: 'highlight', class: classNames})
 
   getCountForKeyword: (editor, keyword) ->
-    count = 0
-    editor.scan(///#{_.escapeRegExp(keyword)}///g, -> count++)
-    count
+    getCountForKeyword(editor, keyword)
 
   consumeStatusBar: (statusBar) ->
     @statusBarManager.initialize(statusBar)
@@ -302,6 +205,6 @@ module.exports =
       stayAtSamePosition: true
 
       mutateSelection: (selection) ->
-        toggle(selection.getText())
+        toggle(@editor, selection.getText())
 
     @subscribe(QuickHighlight.registerCommand())
