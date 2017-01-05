@@ -39,10 +39,49 @@ e.g.
   'g m': 'vim-mode-plus-user:quick-highlight'
 ```
 
+## Modify highlight style
+
+You can override style in you `style.less`.
+See example below.
+
+```less
+@import "syntax-variables";
+
+// For selection color
+//=======================
+atom-text-editor .quick-highlight.box-selection .region {
+  border-width: 1px;
+  background-color: transparent;
+  border-color: @syntax-text-color;
+}
+
+// For manual-highlight(0 to 7) color
+//===================================
+// Less mixin to make manual-highlight to underlined style
+.quick-highlight-underline(@name) {
+  .quick-highlight.@{name} .region {
+    border-width: 0px;
+    border-radius: 0px;
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
+  }
+}
+
+atom-text-editor {
+  .quick-highlight-underline(box-01);
+  .quick-highlight-underline(box-02);
+  .quick-highlight-underline(box-03);
+  .quick-highlight-underline(box-04);
+  .quick-highlight-underline(box-05);
+  .quick-highlight-underline(box-06);
+  .quick-highlight-underline(box-07);
+}
+```
+
 ## vim-mode-plus operator
 
 You can quick-highlight with combination of any motion, text-object.  
-Since it's operator, yes can repat with `.`.
+Since it's operator, yes can repeat by `.`.
 
 e.g.
 - `g m i w`: highlight `inner-word`.

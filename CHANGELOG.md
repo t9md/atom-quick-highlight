@@ -1,3 +1,7 @@
+## 0.6.2
+- Improve: Update selection-highlight style(`box-selection`).
+- Doc: Add TIPS to modify highligth style in README.md.
+
 ## 0.6.1
 - Set `z-index` for box highlight to win selection marker.
 
