@@ -164,28 +164,29 @@ module.exports =
 
   highlightKeyword: (editor, scanRange, keyword, color) ->
     return [] unless editor.isAlive()
-    classNames = "quick-highlight #{color}"
-    pattern = ///#{_.escapeRegExp(keyword)}///g
+
+    markerOptions = {invalidate: 'inside'}
+    decorationOptions = {type: 'highlight', class: "quick-highlight #{color}"}
+
     decorations = []
-    editor.scanInBufferRange pattern, scanRange, ({range}) =>
-      decorations.push(@decorateRange(editor, range, {classNames}))
+    editor.scanInBufferRange ///#{_.escapeRegExp(keyword)}///g, scanRange, ({range}) ->
+      marker = editor.markBufferRange(range, markerOptions)
+      decorations.push(editor.decorateMarker(marker, decorationOptions))
     decorations
 
   clearEditor: (editor) ->
-    if @decorationsByEditor.has(editor)
-      d.getMarker().destroy() for d in @decorationsByEditor.get(editor)
+    if decorations = @decorationsByEditor.get(editor)
+      for decoration in decorations
+        decoration.getMarker().destroy()
       @decorationsByEditor.delete(editor)
 
   clear: ->
-    @decorationsByEditor.forEach (decorations, editor) =>
-      @clearEditor(editor)
+    @decorationsByEditor.forEach (decorations) ->
+      for decoration in decorations
+        decoration.getMarker().destroy()
     @decorationsByEditor.clear()
     @keywords.reset()
     @statusBarManager.clear()
-
-  decorateRange: (editor, range, {classNames}) ->
-    marker = editor.markBufferRange(range, invalidate: 'inside')
-    editor.decorateMarker(marker, {type: 'highlight', class: classNames})
 
   getCountForKeyword: (editor, keyword) ->
     getCountForKeyword(editor, keyword)
