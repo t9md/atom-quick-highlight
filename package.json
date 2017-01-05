@@ -1,7 +1,7 @@
 {
   "name": "quick-highlight",
   "main": "./lib/main",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Highlight text quickly.",
   "repository": "https://github.com/t9md/atom-quick-highlight",
   "license": "MIT",
