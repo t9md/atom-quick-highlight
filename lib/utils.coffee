@@ -23,6 +23,5 @@ matchScope = (editorElement, scope) ->
 module.exports = {
   matchScope
   getVisibleEditors
-  getVisibleBufferRange
   getCursorWord
 }

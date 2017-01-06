@@ -20,22 +20,19 @@ module.exports =
     @statusBarManager = new StatusBarManager
 
     toggle = @toggle.bind(this)
-    @subscribe atom.commands.add 'atom-text-editor:not([mini])',
+    @subscriptions.add atom.commands.add 'atom-text-editor:not([mini])',
       'quick-highlight:toggle': -> toggle(@getModel())
-      'quick-highlight:clear': => @clear()
+      'quick-highlight:clear': => @keywordManager.clear()
 
-    @subscribe atom.workspace.observeTextEditors (editor) =>
+    @subscriptions.add atom.workspace.observeTextEditors (editor) =>
       view = new QuickHighlightView(editor, {@keywordManager, @statusBarManager})
       @viewByEditor.set(editor, view)
 
-    @subscribe atom.workspace.onDidChangeActivePaneItem (item) =>
+    @subscriptions.add atom.workspace.onDidChangeActivePaneItem (item) =>
       @viewByEditor.forEach (view) -> view.refresh(item)
 
-  subscribe: (args...) ->
-    @subscriptions.add args...
-
   deactivate: ->
-    @clear()
+    @keywordManager.clear()
     @viewByEditor.forEach (view) -> view.destroy()
     @subscriptions.dispose()
     {@subscriptions} = {}
@@ -43,9 +40,6 @@ module.exports =
   toggle: (editor, keyword) ->
     keyword ?= editor.getSelectedText() or getCursorWord(editor)
     @keywordManager.toggle(keyword)
-
-  clear: ->
-    @keywordManager.clear()
 
   consumeStatusBar: (statusBar) ->
     @statusBarManager.initialize(statusBar)
@@ -62,4 +56,4 @@ module.exports =
       mutateSelection: (selection) ->
         toggle(@editor, selection.getText())
 
-    @subscribe(QuickHighlight.registerCommand())
+    @subscriptions.add(QuickHighlight.registerCommand())
