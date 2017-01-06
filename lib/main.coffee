@@ -56,4 +56,10 @@ module.exports =
       mutateSelection: (selection) ->
         toggle(@editor, selection.getText())
 
-    @subscriptions.add(QuickHighlight.registerCommand())
+    class QuickHighlightWord extends QuickHighlight
+      target: "InnerWord"
+
+    @subscriptions.add(
+      QuickHighlight.registerCommand()
+      QuickHighlightWord.registerCommand()
+    )
