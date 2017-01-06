@@ -9,16 +9,27 @@ settings = require './settings'
 
 module.exports =
   class QuickHighlightView
-    constructor: (@editor, @main) ->
+
+    constructor: (@editor, {@keywordManager, @statusBarManager}) ->
       @editorElement = @editor.element
       @markerLayers = []
 
       @disposables = new CompositeDisposable
+
+      highlightSelection = null
+      @disposables.add settings.observe 'highlightSelectionDelay', (delay) =>
+        highlightSelection = _.debounce(@highlightSelection.bind(this), delay)
+
       @disposables.add(
         @editor.onDidDestroy(@destroy.bind(this))
-        @editor.onDidChangeSelectionRange(@highlightSelection.bind(this))
-        @main.onDidChangeKeyword(@refresh.bind(this))
+
+        # Don't pass function directly since we UPDATE highlightSelection on config change
+        @editor.onDidChangeSelectionRange(({selection}) -> highlightSelection(selection))
+
+        @keywordManager.onDidChangeKeyword(@refresh.bind(this, null))
+        @editor.onDidStopChanging(@refresh.bind(this, null))
       )
+
 
     needSelectionHighlight: (selection) ->
       editorElement = @editor.element
@@ -34,7 +45,7 @@ module.exports =
         else
           true
 
-    highlightSelection: ({selection}) ->
+    highlightSelection: (selection) ->
       @markerLayerForSelectionHighlight?.destroy()
       return unless @needSelectionHighlight(selection)
       if keyword = selection.getText()
@@ -56,11 +67,21 @@ module.exports =
         markerLayer.markBufferRange(range, markerOptions)
       markerLayer
 
-    refresh: ({colorsByKeyword}) ->
+    refresh: (activeEditor) ->
+      colorsByKeyword = @keywordManager.colorsByKeyword
       decorationStyle = settings.get('decorate')
+
       @clear()
+
       colorsByKeyword.forEach (color, keyword) =>
         @markerLayers.push(@highlight(keyword, color))
+
+      activeEditor ?= atom.workspace.getActiveTextEditor()
+
+      if activeEditor? and activeEditor is @editor and @markerLayer
+        @statusBarManager.clear()
+        if settings.get('displayCountOnStatusBar') and (markerLayer = _.last(@markerLayers))?
+          @statusBarManager.update(markerLayer.getMarkerCount())
 
     isVisible: ->
       @editor in getVisibleEditors()
@@ -68,8 +89,9 @@ module.exports =
     clear: ->
       for markerLayer in @markerLayers
         markerLayer.destroy()
+      @markerLayer = []
 
     destroy: ->
       @clear()
       @markerLayerForSelectionHighlight?.destroy()
-      @disposable.dispose()
+      @disposables.dispose()
