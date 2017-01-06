@@ -92,57 +92,57 @@ describe "quick-highlight", ->
 
   describe "quick-highlight:toggle", ->
     it "decorate keyword under cursor", ->
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).toHaveDecorations length: 3, color: '01', text: 'orange'
 
     it "remove decoration when if already decorated", ->
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 3
       dispatchCommand('quick-highlight:toggle')
 
-      expect(main.keywords.has('orange')).toBe false
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe false
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 0
 
     it "can decorate multiple keyword simultaneously", ->
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 3
       editor.setCursorScreenPosition [1, 12]
       dispatchCommand('quick-highlight:toggle')
 
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe true
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe true
       expect(editor).lengthOfDecorationsToBe 6
       expect(editor).toHaveDecorations color: '01', length: 3, text: 'orange'
       expect(editor).toHaveDecorations color: '02', length: 3, text: 'apple'
 
     it "destroy decoration when editor is destroyed", ->
-      expect(main.keywords.has('orange')).toBe true
+      expect(main.colorByKeyword.has('orange')).toBe true
       expect(editor).lengthOfDecorationsToBe 3
       editor.destroy()
       expect(editor).toHaveAllMarkerDestoyed()
 
   describe "quick-highlight:clear", ->
     it "clear all decorations", ->
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).lengthOfDecorationsToBe 3
       editor.setCursorScreenPosition [1, 12]
       dispatchCommand('quick-highlight:toggle')
 
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe true
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe true
       expect(editor).lengthOfDecorationsToBe 6
 
       dispatchCommand('quick-highlight:clear')
       expect(editor).lengthOfDecorationsToBe 0
-      expect(main.keywords.has('orange')).toBe false
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe false
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).toHaveAllMarkerDestoyed()
-      expect(main.decorationsByEditor.has(editor)).toBe false
+      expect(main.markersByEditor.has(editor)).toBe false
 
   describe "multiple editors is displayed", ->
     [editor2, editor2Element] = []
@@ -158,14 +158,14 @@ describe "quick-highlight", ->
         expect(editor2).toBeActiveEditor()
         dispatchCommand('quick-highlight:clear')
         expect(editor).lengthOfDecorationsToBe 0
-        expect(main.decorationsByEditor.has(editor)).toBe false
+        expect(main.markersByEditor.has(editor)).toBe false
         expect(editor2).lengthOfDecorationsToBe 0
-        expect(main.decorationsByEditor.has(editor2)).toBe false
+        expect(main.markersByEditor.has(editor2)).toBe false
 
     it "can decorate keyword across visible editors", ->
       dispatchCommand('quick-highlight:toggle', editor2Element)
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).toHaveDecorations color: '01', length: 3, text: 'orange'
       expect(editor2).toHaveDecorations color: '01', length: 3, text: 'orange'
 
@@ -181,8 +181,8 @@ describe "quick-highlight", ->
 
     it "decorate keywords when new editor was opened", ->
       dispatchCommand('quick-highlight:toggle', editor2Element)
-      expect(main.keywords.has('orange')).toBe true
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe true
+      expect(main.colorByKeyword.has('apple')).toBe false
 
       editor3 = null
       pathSample3 = atom.project.resolvePath "sample-3"
@@ -200,10 +200,10 @@ describe "quick-highlight", ->
     beforeEach ->
       dispatchCommand('quick-highlight:clear')
       expect(editor).lengthOfDecorationsToBe 0
-      expect(main.keywords.has('orange')).toBe false
-      expect(main.keywords.has('apple')).toBe false
+      expect(main.colorByKeyword.has('orange')).toBe false
+      expect(main.colorByKeyword.has('apple')).toBe false
       expect(editor).toHaveAllMarkerDestoyed()
-      expect(main.decorationsByEditor.has(editor)).toBe false
+      expect(main.markersByEditor.has(editor)).toBe false
 
     it "decorate selected keyword", ->
       dispatchCommand('editor:select-word')
@@ -319,8 +319,8 @@ describe "quick-highlight", ->
         dispatchCommand('quick-highlight:toggle', element: editorElement4)
         editor4.setCursorBufferPosition [3, 0]
         dispatchCommand('quick-highlight:toggle', element: editorElement4)
-        expect(main.keywords.has('orange')).toBe true
-        expect(main.keywords.has('apple')).toBe true
+        expect(main.colorByKeyword.has('orange')).toBe true
+        expect(main.colorByKeyword.has('apple')).toBe true
 
     describe "decorate only visible area", ->
       it "update decoration on scroll", ->

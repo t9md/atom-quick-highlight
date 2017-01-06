@@ -11,34 +11,15 @@ settings = require './settings'
   getCursorWord
 } = require './utils'
 
-# Utils
-# -------------------------
-class KeywordManager
-  colors: ['01', '02', '03', '04', '05', '06', '07']
-  index: null
-  constructor: ->
-    @reset()
-  add: (keyword) ->
-    @index = (@index + 1) % @colors.length
-    @kw2color[keyword] = @colors[@index]
-  delete: (keyword) ->
-    delete @kw2color[keyword]
-  has: (keyword) ->
-    keyword of @kw2color
-  reset: (keyword) ->
-    @kw2color = Object.create(null)
-    @index = -1
-  each: (fn) ->
-    fn(keyword, color) for keyword, color of @kw2color
-
 module.exports =
   config: settings.config
+  colorNumbers: ['01', '02', '03', '04', '05', '06', '07']
 
   activate: (state) ->
     @subscriptions = new CompositeDisposable
     @emitter = new Emitter
-    @decorationsByEditor = new Map
-    @keywords = new KeywordManager()
+    @markersByEditor = new Map
+    @colorByKeyword = new Map()
     @statusBarManager = new StatusBarManager
 
     toggle = @toggle.bind(this)
@@ -92,13 +73,14 @@ module.exports =
     @subscriptions.remove(arg)
 
   clearSelectionDecoration: ->
-    d.getMarker().destroy() for d in @selectionDecorations ? []
-    @selectionDecorations = null
+    for marker in @selectionMarkers ? []
+      marker.destroy()
+    @selectionMarkers = null
 
   shouldExcludeEditor: (editor) ->
+    editorElement = editor.element
     scopes = settings.get('highlightSelectionExcludeScopes')
-    scopes.some (scope) ->
-      matchScope(editor.element, scope)
+    scopes.some (scope) -> matchScope(editorElement, scope)
 
   highlightSelection: (editor) ->
     @clearSelectionDecoration()
@@ -107,7 +89,7 @@ module.exports =
     return unless @needToHighlightSelection(selection)
     keyword = selection.getText()
     return unless scanRange = getVisibleBufferRange(editor)
-    @selectionDecorations = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
+    @selectionMarkers = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
 
   needToHighlightSelection: (selection) ->
     switch
@@ -124,7 +106,7 @@ module.exports =
     @clear()
     @clearSelectionDecoration()
     @subscriptions.dispose()
-    {@decorationsByEditor, @subscriptions, @keywords} = {}
+    {@markersByEditor, @subscriptions} = {}
 
   locked: false
   isLocked: ->
@@ -138,16 +120,25 @@ module.exports =
       @locked = false
       value
 
+  getNextColor: ->
+    @colorIndex ?= -1
+    @colorIndex = (@colorIndex + 1) % @colorNumbers.length
+    @colorNumbers[@colorIndex]
+
   toggle: (editor, keyword) ->
     keyword ?= editor.getSelectedText() or @withLock(-> getCursorWord(editor))
-    if @keywords.has(keyword)
-      @keywords.delete(keyword)
+
+    if @colorByKeyword.has(keyword)
+      @colorByKeyword.delete(keyword)
       @statusBarManager.clear()
     else
-      @keywords.add(keyword)
+      @colorByKeyword.set(keyword, @getNextColor())
+
       if settings.get('displayCountOnStatusBar')
         @statusBarManager.update(@getCountForKeyword(editor, keyword))
-    @refreshEditor(editor) for editor in getVisibleEditors()
+
+    for editor in getVisibleEditors()
+      @refreshEditor(editor)
 
   refreshEditor: (editor) ->
     @clearEditor(editor)
@@ -155,12 +146,13 @@ module.exports =
 
   renderEditor: (editor) ->
     return unless scanRange = getVisibleBufferRange(editor)
-    decorations = []
+    markers = []
     decorationStyle = settings.get('decorate')
-    @keywords.each (keyword, color) =>
-      color = "#{decorationStyle}-#{color}"
-      decorations = decorations.concat(@highlightKeyword(editor, scanRange, keyword, color))
-    @decorationsByEditor.set(editor, decorations)
+
+    @colorByKeyword.forEach (color, keyword) =>
+      colorName = "#{decorationStyle}-#{color}"
+      markers = markers.concat(@highlightKeyword(editor, scanRange, keyword, colorName))
+    @markersByEditor.set(editor, markers)
 
   highlightKeyword: (editor, scanRange, keyword, color) ->
     return [] unless editor.isAlive()
@@ -168,24 +160,28 @@ module.exports =
     markerOptions = {invalidate: 'inside'}
     decorationOptions = {type: 'highlight', class: "quick-highlight #{color}"}
 
-    decorations = []
+    markers = []
     editor.scanInBufferRange ///#{_.escapeRegExp(keyword)}///g, scanRange, ({range}) ->
       marker = editor.markBufferRange(range, markerOptions)
-      decorations.push(editor.decorateMarker(marker, decorationOptions))
-    decorations
+      editor.decorateMarker(marker, decorationOptions)
+      markers.push(marker)
+    markers
 
   clearEditor: (editor) ->
-    if decorations = @decorationsByEditor.get(editor)
-      for decoration in decorations
-        decoration.getMarker().destroy()
-      @decorationsByEditor.delete(editor)
+    if markers = @markersByEditor.get(editor)
+      for marker in markers
+        marker.destroy()
+      @markersByEditor.delete(editor)
 
   clear: ->
-    @decorationsByEditor.forEach (decorations) ->
-      for decoration in decorations
-        decoration.getMarker().destroy()
-    @decorationsByEditor.clear()
-    @keywords.reset()
+    @markersByEditor.forEach (markers) ->
+      for marker in markers
+        marker.destroy()
+    @markersByEditor.clear()
+
+    @colorByKeyword.clear()
+    @colorIndex = null
+
     @statusBarManager.clear()
 
   getCountForKeyword: (editor, keyword) ->
