@@ -2,9 +2,9 @@
 _ = require 'underscore-plus'
 StatusBarManager = require './status-bar-manager'
 settings = require './settings'
+QuickHighlightView = require './quick-highlight-view'
 
 {
-  matchScope
   getVisibleEditors
   getVisibleBufferRange
   getCountForKeyword
@@ -18,8 +18,8 @@ module.exports =
   activate: (state) ->
     @subscriptions = new CompositeDisposable
     @emitter = new Emitter
-    @markersByEditor = new Map
-    @colorByKeyword = new Map()
+    @viewByEditor = new Map
+    @colorsByKeyword = new Map()
     @statusBarManager = new StatusBarManager
 
     toggle = @toggle.bind(this)
@@ -28,13 +28,16 @@ module.exports =
       'quick-highlight:clear': => @clear()
 
     debouncedhighlightSelection = null
-    highlightSelection = @highlightSelection.bind(this)
+    highlightSelection = ->
     settings.observe 'highlightSelectionDelay', (delay) ->
       debouncedhighlightSelection = _.debounce(highlightSelection, delay)
 
     refreshEditor = @refreshEditor.bind(this)
 
     @subscribe atom.workspace.observeTextEditors (editor) =>
+      view = new QuickHighlightView(editor, this)
+      @viewByEditor.set(view, editor)
+
       editorSubs = new CompositeDisposable
       editorSubs.add editor.onDidStopChanging ->
         if editor is atom.workspace.getActiveTextEditor()
@@ -46,7 +49,6 @@ module.exports =
 
       editorElement = editor.element
       refresh = @refreshEditor.bind(this, editor)
-      editorSubs.add(editorElement.onDidChangeScrollTop(refresh))
 
       # [FIXME]
       # @refreshEditor depends on editorElement.getVisibleRowRange() but it return
@@ -57,20 +59,20 @@ module.exports =
       editorSubs.add editor.onDidChangeSelectionRange ({selection}) =>
         if selection.isLastSelection() and not @isLocked()
           debouncedhighlightSelection(editor)
-      editorSubs.add(editorElement.onDidChangeScrollTop => @highlightSelection(editor))
 
       editorSubs.add editor.onDidDestroy =>
-        @clearEditor(editor)
+        # @clearEditor(editor)
         editorSubs.dispose()
         @unsubscribe(editorSubs)
 
       @subscribe(editorSubs)
 
     @subscribe atom.workspace.onDidChangeActivePaneItem (item) =>
+      null
       @statusBarManager.clear()
-      if item?.getText? # Check if instance of TextEditor
-        @refreshEditor(item)
-        @highlightSelection(item)
+      # if item?.getText? # Check if instance of TextEditor
+      #   @refreshEditor(item)
+        # @highlightSelection(item)
 
   subscribe: (args...) ->
     @subscriptions.add args...
@@ -78,41 +80,13 @@ module.exports =
   unsubscribe: (arg) ->
     @subscriptions.remove(arg)
 
-  clearSelectionDecoration: ->
-    for marker in @selectionMarkers ? []
-      marker.destroy()
-    @selectionMarkers = null
-
-  shouldExcludeEditor: (editor) ->
-    editorElement = editor.element
-    scopes = settings.get('highlightSelectionExcludeScopes')
-    scopes.some (scope) -> matchScope(editorElement, scope)
-
-  highlightSelection: (editor) ->
-    @clearSelectionDecoration()
-    return if @shouldExcludeEditor(editor)
-    selection = editor.getLastSelection()
-    return unless @needToHighlightSelection(selection)
-    keyword = selection.getText()
-    return unless scanRange = getVisibleBufferRange(editor)
-    @selectionMarkers = @highlightKeyword(editor, scanRange, keyword, 'box-selection')
-
-  needToHighlightSelection: (selection) ->
-    switch
-      when (not settings.get('highlightSelection'))
-          , selection.isEmpty()
-          , not selection.getBufferRange().isSingleLine()
-          , selection.getText().length < settings.get('highlightSelectionMinimumLength')
-          , /[^\S]/.test(selection.getText())
-        false
-      else
-        true
-
   deactivate: ->
     @clear()
-    @clearSelectionDecoration()
+    @viewByEditor.forEach (view) ->
+      view.destroy()
+
     @subscriptions.dispose()
-    {@markersByEditor, @subscriptions} = {}
+    {@subscriptions} = {}
 
   locked: false
   isLocked: ->
@@ -133,60 +107,24 @@ module.exports =
 
   toggle: (editor, keyword) ->
     keyword ?= editor.getSelectedText() or @withLock(-> getCursorWord(editor))
-
-    if @colorByKeyword.has(keyword)
-      @colorByKeyword.delete(keyword)
+    if @colorsByKeyword.has(keyword)
+      @colorsByKeyword.delete(keyword)
       @statusBarManager.clear()
     else
-      @colorByKeyword.set(keyword, @getNextColor())
-
+      @colorsByKeyword.set(keyword, @getNextColor())
       if settings.get('displayCountOnStatusBar')
         @statusBarManager.update(@getCountForKeyword(editor, keyword))
+    @emitter.emit('did-change-keyword', {@colorsByKeyword})
 
-    for editor in getVisibleEditors()
-      @refreshEditor(editor)
+  onDidChangeKeyword: (fn) -> @emitter.on('did-change-keyword', fn)
 
   refreshEditor: (editor) ->
-    @clearEditor(editor)
-    @renderEditor(editor)
-
-  renderEditor: (editor) ->
-    return unless scanRange = getVisibleBufferRange(editor)
-    markers = []
-    decorationStyle = settings.get('decorate')
-
-    @colorByKeyword.forEach (color, keyword) =>
-      colorName = "#{decorationStyle}-#{color}"
-      markers = markers.concat(@highlightKeyword(editor, scanRange, keyword, colorName))
-    @markersByEditor.set(editor, markers)
-
-  highlightKeyword: (editor, scanRange, keyword, color) ->
-    return [] unless editor.isAlive()
-
-    markerOptions = {invalidate: 'inside'}
-    decorationOptions = {type: 'highlight', class: "quick-highlight #{color}"}
-
-    markers = []
-    editor.scanInBufferRange ///#{_.escapeRegExp(keyword)}///g, scanRange, ({range}) ->
-      marker = editor.markBufferRange(range, markerOptions)
-      editor.decorateMarker(marker, decorationOptions)
-      markers.push(marker)
-    markers
-
-  clearEditor: (editor) ->
-    if markers = @markersByEditor.get(editor)
-      for marker in markers
-        marker.destroy()
-      @markersByEditor.delete(editor)
+    null
 
   clear: ->
-    @markersByEditor.forEach (markers) ->
-      for marker in markers
-        marker.destroy()
-    @markersByEditor.clear()
-    @colorByKeyword.clear()
+    @colorsByKeyword.clear()
+    @emitter.emit('did-change-keyword', {@colorsByKeyword})
     @colorIndex = null
-
     @statusBarManager.clear()
 
   getCountForKeyword: (editor, keyword) ->
