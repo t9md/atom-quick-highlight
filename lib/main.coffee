@@ -28,25 +28,31 @@ module.exports =
       'quick-highlight:clear': => @clear()
 
     debouncedhighlightSelection = null
-    settings.observe 'highlightSelectionDelay', (delay) =>
-      debouncedhighlightSelection = _.debounce(@highlightSelection.bind(this), delay)
+    highlightSelection = @highlightSelection.bind(this)
+    settings.observe 'highlightSelectionDelay', (delay) ->
+      debouncedhighlightSelection = _.debounce(highlightSelection, delay)
+
+    refreshEditor = @refreshEditor.bind(this)
 
     @subscribe atom.workspace.observeTextEditors (editor) =>
       editorSubs = new CompositeDisposable
-      editorSubs.add editor.onDidStopChanging =>
-        return unless atom.workspace.getActiveTextEditor() is editor
-        URI = editor.getURI()
-        for e in getVisibleEditors() when (e.getURI() is URI)
-          @refreshEditor(e)
+      editorSubs.add editor.onDidStopChanging ->
+        if editor is atom.workspace.getActiveTextEditor()
+          URI = editor.getURI()
+          isChangedEditor = (editor) -> editor.getURI() is URI
+          getVisibleEditors()
+            .filter(isChangedEditor)
+            .forEach(refreshEditor)
 
       editorElement = editor.element
-      editorSubs.add(editor.element.onDidChangeScrollTop => @refreshEditor(editor))
+      refresh = @refreshEditor.bind(this, editor)
+      editorSubs.add(editorElement.onDidChangeScrollTop(refresh))
 
       # [FIXME]
       # @refreshEditor depends on editorElement.getVisibleRowRange() but it return
       # [undefined, undefined] when it called on editorElement which is not attached yet.
       # So we separately need to cover this case from Atom v1.1.0
-      editorSubs.add(editorElement.onDidAttach => @refreshEditor(editor))
+      editorSubs.add(editorElement.onDidAttach(refresh))
 
       editorSubs.add editor.onDidChangeSelectionRange ({selection}) =>
         if selection.isLastSelection() and not @isLocked()
@@ -178,7 +184,6 @@ module.exports =
       for marker in markers
         marker.destroy()
     @markersByEditor.clear()
-
     @colorByKeyword.clear()
     @colorIndex = null
 
