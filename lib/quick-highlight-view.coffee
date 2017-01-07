@@ -13,6 +13,7 @@ module.exports =
 
     constructor: (@editor, {@keywordManager, @statusBarManager}) ->
       @keywordToMarkerLayer = Object.create(null)
+      @decorationStyle = settings.get('decorate')
 
       @disposables = new CompositeDisposable
 
@@ -22,7 +23,7 @@ module.exports =
 
       @disposables.add(
         settings.observe('highlightSelectionDelay', updateHighlightSelection)
-        settings.observe('decorate', @reset.bind(this))
+        settings.onDidChange('decorate', @onChangeDecorationStyle.bind(this))
         @editor.onDidDestroy(@destroy.bind(this))
 
         # Don't pass function directly since we UPDATE highlightSelection on config change
@@ -31,6 +32,10 @@ module.exports =
         @keywordManager.onDidChangeKeyword(@refresh.bind(this))
         @editor.onDidStopChanging(@reset.bind(this))
       )
+
+    onChangeDecorationStyle: ({newValue}) ->
+      @decorationStyle = newValue
+      @reset()
 
     needSelectionHighlight: (selection) ->
       editorElement = @editor.element
@@ -64,16 +69,6 @@ module.exports =
         markerLayer.markBufferRange(range, markerOptions)
       markerLayer
 
-    addHighlight: ({keyword, color}) ->
-      if keyword not of @keywordToMarkerLayer
-        if markerLayer = @highlight(keyword, "#{settings.get('decorate')}-#{color}")
-          @keywordToMarkerLayer[keyword] = markerLayer
-
-    deleteHighlight: ({keyword}) ->
-      if keyword of @keywordToMarkerLayer
-        @keywordToMarkerLayer[keyword].destroy()
-        delete @keywordToMarkerLayer[keyword]
-
     clear: ->
       for keyword, markerLayer of @keywordToMarkerLayer
         markerLayer.destroy()
@@ -86,11 +81,15 @@ module.exports =
       keywordsToAdd = _.without(masterKeywords, currentKeywords...)
       keywordsToDelete = _.without(currentKeywords, masterKeywords...)
 
+      # Delete
       for keyword in keywordsToDelete
-        @deleteHighlight({keyword})
+        @keywordToMarkerLayer[keyword].destroy()
+        delete @keywordToMarkerLayer[keyword]
 
+      # Add
       for keyword in keywordsToAdd when color = keywordToColor[keyword]
-        @addHighlight({keyword, color})
+        if markerLayer = @highlight(keyword, "#{@decorationStyle}-#{color}")
+          @keywordToMarkerLayer[keyword] = markerLayer
 
     reset: ->
       @clear()

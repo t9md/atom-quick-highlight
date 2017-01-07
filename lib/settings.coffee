@@ -27,7 +27,10 @@ class Settings
     @set(param, not @get(param))
 
   observe: (param, fn) ->
-    atom.config.observe "#{@scope}.#{param}", fn
+    atom.config.observe("#{@scope}.#{param}", fn)
+
+  onDidChange: (param, fn) ->
+    atom.config.onDidChange("#{@scope}.#{param}", fn)
 
 module.exports = new Settings 'quick-highlight',
   decorate:
