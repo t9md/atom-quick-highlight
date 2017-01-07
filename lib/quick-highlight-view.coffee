@@ -29,6 +29,7 @@ module.exports =
         @editor.onDidChangeSelectionRange(({selection}) -> highlightSelection(selection))
 
         @keywordManager.onDidChangeKeyword(@refresh.bind(this))
+        @keywordManager.onDidClearKeyword(@clear.bind(this))
         @editor.onDidStopChanging(@reset.bind(this))
       )
 
@@ -68,20 +69,25 @@ module.exports =
         markerLayer.destroy()
       @keywordToMarkerLayer = Object.create(null)
 
-    render: ->
-      {keywordToColor} = @keywordManager
-      masterKeywords = _.keys(keywordToColor)
+    getDiff: ->
+      masterKeywords = _.keys(@keywordManager.keywordToColor)
       currentKeywords = _.keys(@keywordToMarkerLayer)
-      keywordsToAdd = _.without(masterKeywords, currentKeywords...)
-      keywordsToDelete = _.without(currentKeywords, masterKeywords...)
+      newKeywords = _.without(masterKeywords, currentKeywords...)
+      oldKeywords = _.without(currentKeywords, masterKeywords...)
+      if newKeywords.length or oldKeywords.length
+        {newKeywords, oldKeywords}
+      else
+        null
 
+    render: ({newKeywords, oldKeywords}) ->
       # Delete
-      for keyword in keywordsToDelete
+      for keyword in oldKeywords
         @keywordToMarkerLayer[keyword].destroy()
         delete @keywordToMarkerLayer[keyword]
 
       # Add
-      for keyword in keywordsToAdd when color = keywordToColor[keyword]
+      {keywordToColor} = @keywordManager
+      for keyword in newKeywords when color = keywordToColor[keyword]
         @keywordToMarkerLayer[keyword] = @highlight(keyword, "#{@decorationStyle}-#{color}")
 
     reset: ->
@@ -89,11 +95,10 @@ module.exports =
       @refresh()
 
     refresh: ->
-      isVisible = @editor in getVisibleEditors()
-      if isVisible
-        @render()
-      else
-        @clear()
+      return unless @editor in getVisibleEditors()
+
+      if diff = @getDiff()
+        @render(diff)
       @updateStatusBarIfNecesssary()
 
     updateStatusBarIfNecesssary: ->

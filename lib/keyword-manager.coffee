@@ -8,6 +8,9 @@ module.exports =
     onDidChangeKeyword: (fn) -> @emitter.on('did-change-keyword', fn)
     emitDidChangeKeyword: -> @emitter.emit('did-change-keyword')
 
+    onDidClearKeyword: (fn) -> @emitter.on('did-clear-keyword', fn)
+    emitDidClearKeyword: -> @emitter.emit('did-clear-keyword')
+
     constructor: ->
       @emitter = new Emitter
       @reset()
@@ -26,7 +29,7 @@ module.exports =
 
     clear: ->
       @reset()
-      @emitDidChangeKeyword()
+      @emitDidClearKeyword()
 
     getNextColor: ->
       @colorIndex = (@colorIndex + 1) % @colorNumbers.length
