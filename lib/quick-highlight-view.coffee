@@ -5,7 +5,6 @@ settings = require './settings'
 {
   getVisibleEditors
   matchScope
-  collectKeywordRanges
 } = require './utils'
 
 module.exports =
@@ -58,14 +57,13 @@ module.exports =
         @markerLayerForSelectionHighlight = @highlight(keyword, 'box-selection')
 
     highlight: (keyword, color) ->
-      ranges = collectKeywordRanges(@editor, keyword)
-      return null if ranges.length is 0
-
       markerLayer = @editor.addMarkerLayer()
       decorationOptions = {type: 'highlight', class: "quick-highlight #{color}"}
       @editor.decorateMarkerLayer(markerLayer, decorationOptions)
       markerOptions = {invalidate: 'inside'}
-      for range in ranges
+
+      pattern = ///#{_.escapeRegExp(keyword)}///g
+      @editor.scan pattern, ({range}) ->
         markerLayer.markBufferRange(range, markerOptions)
       markerLayer
 
@@ -88,8 +86,7 @@ module.exports =
 
       # Add
       for keyword in keywordsToAdd when color = keywordToColor[keyword]
-        if markerLayer = @highlight(keyword, "#{@decorationStyle}-#{color}")
-          @keywordToMarkerLayer[keyword] = markerLayer
+        @keywordToMarkerLayer[keyword] = @highlight(keyword, "#{@decorationStyle}-#{color}")
 
     reset: ->
       @clear()
