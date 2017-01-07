@@ -6,9 +6,9 @@ KeywordManager = require './keyword-manager'
 StatusBarManager = require './status-bar-manager'
 
 # - Refresh onDidChangeActivePaneItem
-# - But dont't refresh in-visible editor
+# - But dont't refresh invisible editor
 # - Update statusbar count on activeEditor was changed
-# - Clear marker for in-visible editor?
+# - Clear marker for invisible editor?
 # - Update only keyword added/remove(No need to refresh whole keywords)
 
 {
@@ -34,14 +34,11 @@ module.exports =
       view = new QuickHighlightView(editor, {@keywordManager, @statusBarManager})
       @viewByEditor.set(editor, view)
 
-    @subscriptions.add atom.workspace.onDidChangeActivePaneItem =>
-      @viewByEditor.forEach (view) -> view.refresh()
-
   deactivate: ->
     @keywordManager.destroy()
     @viewByEditor.forEach (view) -> view.destroy()
     @subscriptions.dispose()
-    {@subscriptions} = {}
+    @subscriptions = null
 
   toggle: (editor, keyword) ->
     keyword ?= editor.getSelectedText() or getCursorWord(editor)

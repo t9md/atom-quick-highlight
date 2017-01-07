@@ -7,33 +7,40 @@ settings = require './settings'
   matchScope
 } = require './utils'
 
+# - Refresh onDidChangeActivePaneItem
+# - But dont't refresh invisible editor
+# - Update statusbar count on activeEditor was changed
+# - Clear marker for invisible editor?: Decide to skip to avoid clere/re-render.
+# - Update only keyword added/remove: Achived by diffing.
+
 module.exports =
   class QuickHighlightView
+    decorationStyle: null
 
     constructor: (@editor, {@keywordManager, @statusBarManager}) ->
       @keywordToMarkerLayer = Object.create(null)
-      @decorationStyle = settings.get('decorate')
 
       @disposables = new CompositeDisposable
 
       highlightSelection = null
       updateHighlightSelection = (delay) =>
-        highlightSelection = _.debounce(@highlightSelection.bind(this), delay)
+        highlightSelection = _.debounce(@highlightSelection, delay)
 
       @disposables.add(
         settings.observe('highlightSelectionDelay', updateHighlightSelection)
-        settings.onDidChange('decorate', @onChangeDecorationStyle.bind(this))
-        @editor.onDidDestroy(@destroy.bind(this))
+        settings.observe('decorate', @observeDecorationStyle)
+        @editor.onDidDestroy(@destroy)
 
         # Don't pass function directly since we UPDATE highlightSelection on config change
         @editor.onDidChangeSelectionRange(({selection}) -> highlightSelection(selection))
 
-        @keywordManager.onDidChangeKeyword(@refresh.bind(this))
-        @keywordManager.onDidClearKeyword(@clear.bind(this))
-        @editor.onDidStopChanging(@reset.bind(this))
+        atom.workspace.onDidChangeActivePaneItem(@refresh)
+        @keywordManager.onDidChangeKeyword(@refresh)
+        @keywordManager.onDidClearKeyword(@clear)
+        @editor.onDidStopChanging(@reset)
       )
 
-    onChangeDecorationStyle: ({newValue}) ->
+    observeDecorationStyle: (newValue) =>
       @decorationStyle = newValue
       @reset()
 
@@ -51,7 +58,7 @@ module.exports =
         else
           true
 
-    highlightSelection: (selection) ->
+    highlightSelection: (selection) =>
       @markerLayerForSelectionHighlight?.destroy()
       return unless @needSelectionHighlight(selection)
       if keyword = selection.getText()
@@ -63,11 +70,6 @@ module.exports =
       @editor.scan ///#{_.escapeRegExp(keyword)}///g, ({range}) ->
         markerLayer.markBufferRange(range, invalidate: 'inside')
       markerLayer
-
-    clear: ->
-      for keyword, markerLayer of @keywordToMarkerLayer
-        markerLayer.destroy()
-      @keywordToMarkerLayer = Object.create(null)
 
     getDiff: ->
       masterKeywords = _.keys(@keywordManager.keywordToColor)
@@ -90,11 +92,16 @@ module.exports =
       for keyword in newKeywords when color = keywordToColor[keyword]
         @keywordToMarkerLayer[keyword] = @highlight(keyword, "#{@decorationStyle}-#{color}")
 
-    reset: ->
+    clear: =>
+      for keyword, markerLayer of @keywordToMarkerLayer
+        markerLayer.destroy()
+      @keywordToMarkerLayer = Object.create(null)
+
+    reset: =>
       @clear()
       @refresh()
 
-    refresh: ->
+    refresh: =>
       return unless @editor in getVisibleEditors()
 
       if diff = @getDiff()
@@ -109,7 +116,7 @@ module.exports =
         if count > 0
           @statusBarManager.update(count)
 
-    destroy: ->
+    destroy: =>
       @clear()
       @markerLayerForSelectionHighlight?.destroy()
       @disposables.dispose()
