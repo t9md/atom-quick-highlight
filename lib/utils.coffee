@@ -1,7 +1,16 @@
+_ = require 'underscore-plus'
+
 getVisibleEditors = ->
   atom.workspace.getPanes()
     .map (pane) -> pane.getActiveEditor()
     .filter (editor) -> editor?
+
+collectKeywordRanges = (editor, keyword) ->
+  pattern = ///#{_.escapeRegExp(keyword)}///g
+  ranges = []
+  editor.scan pattern, ({range}) ->
+    ranges.push(range)
+  ranges
 
 getCursorWord = (editor) ->
   selection = editor.getLastSelection()
@@ -21,6 +30,7 @@ matchScope = (editorElement, scope) ->
   containsCount is classNames.length
 
 module.exports = {
+  collectKeywordRanges
   matchScope
   getVisibleEditors
   getCursorWord

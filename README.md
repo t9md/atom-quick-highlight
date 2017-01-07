@@ -54,28 +54,6 @@ atom-text-editor .quick-highlight.box-selection .region {
   background-color: transparent;
   border-color: @syntax-text-color;
 }
-
-// For manual-highlight(0 to 7) color
-//===================================
-// Less mixin to make manual-highlight to underlined style
-.quick-highlight-underline(@name) {
-  .quick-highlight.@{name} .region {
-    border-width: 0px;
-    border-radius: 0px;
-    border-bottom-width: 2px;
-    border-bottom-style: solid;
-  }
-}
-
-atom-text-editor {
-  .quick-highlight-underline(box-01);
-  .quick-highlight-underline(box-02);
-  .quick-highlight-underline(box-03);
-  .quick-highlight-underline(box-04);
-  .quick-highlight-underline(box-05);
-  .quick-highlight-underline(box-06);
-  .quick-highlight-underline(box-07);
-}
 ```
 
 ## vim-mode-plus operator

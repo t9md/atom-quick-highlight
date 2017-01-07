@@ -5,6 +5,12 @@ QuickHighlightView = require './quick-highlight-view'
 KeywordManager = require './keyword-manager'
 StatusBarManager = require './status-bar-manager'
 
+# - Refresh onDidChangeActivePaneItem
+# - But dont't refresh in-visible editor
+# - Update statusbar count on activeEditor was changed
+# - Clear marker for in-visible editor?
+# - Update only keyword added/remove(No need to refresh whole keywords)
+
 {
   getCursorWord
 } = require './utils'
@@ -28,8 +34,8 @@ module.exports =
       view = new QuickHighlightView(editor, {@keywordManager, @statusBarManager})
       @viewByEditor.set(editor, view)
 
-    @subscriptions.add atom.workspace.onDidChangeActivePaneItem (item) =>
-      @viewByEditor.forEach (view) -> view.refresh(item)
+    @subscriptions.add atom.workspace.onDidChangeActivePaneItem =>
+      @viewByEditor.forEach (view) -> view.refresh()
 
   deactivate: ->
     @keywordManager.clear()

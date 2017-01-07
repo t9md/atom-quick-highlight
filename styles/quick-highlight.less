@@ -15,6 +15,13 @@
   border-style: solid;
 }
 
+.underline-box () {
+  box-sizing: border-box;
+  border-width: 2px;
+  border-bottom-width: 2px;
+  border-style: solid;
+}
+
 .box(@name, @color) {
   .quick-highlight.@{name} .region {
     .round-box;
@@ -22,6 +29,7 @@
     z-index: 1;
   }
 }
+
 .box(@name) {
   .quick-highlight.@{name} .region {
     .round-box;
@@ -37,6 +45,17 @@
   }
 }
 
+.underline(@name, @color) {
+  .quick-highlight.@{name} .region {
+    .color(border-color, @color);
+    box-sizing: border-box;
+    border-width: 0px;
+    border-bottom-width: 2px;
+    border-style: solid;
+    z-index: 1;
+  }
+}
+
 @color-base: hsl(0, 100%, 50%);
 
 @color01: spin(@color-base, 0);
@@ -47,7 +66,20 @@
 @color06: spin(@color-base, 225);
 @color07: spin(@color-base, 45);
 
+.status-bar-quick-highlight {
+  background-color: red;
+  color: green;
+}
+
 atom-text-editor {
+  .underline(underline-01, @color01);
+  .underline(underline-02, @color02);
+  .underline(underline-03, @color03);
+  .underline(underline-04, @color04);
+  .underline(underline-05, @color05);
+  .underline(underline-06, @color06);
+  .underline(underline-07, @color07);
+
   .box(box-01, @color01);
   .box(box-02, @color02);
   .box(box-03, @color03);
@@ -55,7 +87,6 @@ atom-text-editor {
   .box(box-05, @color05);
   .box(box-06, @color06);
   .box(box-07, @color07);
-  .box(box-selection);
 
   .highlight(highlight-01, @color01);
   .highlight(highlight-02, @color02);
@@ -64,4 +95,6 @@ atom-text-editor {
   .highlight(highlight-05, @color05);
   .highlight(highlight-06, @color06);
   .highlight(highlight-07, @color07);
+
+  .box(box-selection);
 }

@@ -31,8 +31,8 @@ class Settings
 
 module.exports = new Settings 'quick-highlight',
   decorate:
-    default: 'box'
-    enum: ['box', 'highlight']
+    default: 'underline'
+    enum: ['underline', 'box', 'highlight']
     description: "Decoation style for highlight"
   highlightSelection:
     default: true
