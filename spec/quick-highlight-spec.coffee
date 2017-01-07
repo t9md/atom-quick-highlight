@@ -37,8 +37,6 @@ describe "quick-highlight", ->
     atom.commands.dispatch(element, command)
 
   beforeEach ->
-    spyOn(_._, "now").andCallFake -> window.now
-
     workspaceElement = atom.views.getView(atom.workspace)
     jasmine.attachToDOM(workspaceElement)
 
@@ -125,6 +123,9 @@ describe "quick-highlight", ->
         ensureDecorations(editor3, "underline-01": ['orange', 'orange', 'orange'])
 
   describe "selection changed when highlightSelection", ->
+    beforeEach ->
+      spyOn(_._, "now").andCallFake -> window.now
+
     it "decorate selected keyword", ->
       dispatchCommand('editor:select-word')
       advanceClock(150)
@@ -199,30 +200,29 @@ describe "quick-highlight", ->
       beforeEach ->
         setConfig('highlightSelectionDelay', 300)
 
-      xit "highlight selection after specified delay", ->
-        # FIXME: It delay works in interactive use, but I can't make it success in this spec.
-        # need investigation.
+      it "highlight selection after specified delay", ->
         dispatchCommand('editor:select-word')
         expect(editor.getSelectedText()).toBe "orange"
         expect(getDecorations(editor)).toHaveLength 0
-        advanceClock(150)
+        advanceClock(100)
         expect(getDecorations(editor)).toHaveLength 0
-        advanceClock(150)
+        advanceClock(100)
+        expect(getDecorations(editor)).toHaveLength 0
+        advanceClock(100)
+        expect(getDecorations(editor)).toHaveLength 3
         ensureDecorations(editor, "box-selection": ['orange', 'orange', 'orange'])
 
     describe "displayCountOnStatusBar", ->
       [editor3, container, span] = []
       beforeEach ->
         editor.setText """
-        apple orange
-        orange lemon orange
-        apple
-        """
-        waitsForPromise ->
-          atom.packages.activatePackage("status-bar")
+          apple orange
+          orange lemon orange
+          apple
+          """
 
-        waitsFor ->
-          main.statusBarManager.tile?
+        waitsForPromise -> atom.packages.activatePackage("status-bar")
+        waitsFor -> main.statusBarManager.tile?
 
         runs ->
           container = workspaceElement.querySelector('#status-bar-quick-highlight')
