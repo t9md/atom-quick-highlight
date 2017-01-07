@@ -27,17 +27,21 @@ class Settings
     @set(param, not @get(param))
 
   observe: (param, fn) ->
-    atom.config.observe "#{@scope}.#{param}", fn
+    atom.config.observe("#{@scope}.#{param}", fn)
+
+  onDidChange: (param, fn) ->
+    atom.config.onDidChange("#{@scope}.#{param}", fn)
 
 module.exports = new Settings 'quick-highlight',
   decorate:
-    default: 'box'
-    enum: ['box', 'highlight']
+    default: 'underline'
+    enum: ['underline', 'box', 'highlight']
     description: "Decoation style for highlight"
   highlightSelection:
     default: true
   highlightSelectionMinimumLength:
     default: 2
+    minimum: 1
     description: "Minimum length of selection to be highlight"
   highlightSelectionExcludeScopes:
     default: ['vim-mode-plus.visual-mode.blockwise']

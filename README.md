@@ -10,7 +10,10 @@
 
 - `quick-highlight:toggle` toggle highlight for selected or cursor word.
 - `quick-highlight:clear` clear all highlight.
-- `vim-mode-plus-user:quick-highlight` Operator for [vim-mode-plus](https://atom.io/packages/vim-mode-plus).
+
+And following two operator for [vim-mode-plus](https://atom.io/packages/vim-mode-plus) user.
+- `vim-mode-plus-user:quick-highlight`: Operator to highlight by text-object or motion.
+- `vim-mode-plus-user:quick-highlight-word` Highlight cursor word, similar to `quick-highlight:toggle`, but well fit for vim's block cursor orientation. And `.` repeatable.
 
 # Keymap
 
@@ -24,17 +27,10 @@ e.g.
   'cmd-k M': 'quick-highlight:clear'
 ```
 
-* vim-mode user
-```coffeescript
-'atom-text-editor.vim-mode.normal-mode, atom-text-editor.vim-mode.visual-mode':
-  'space m': 'quick-highlight:toggle'
-  'space M': 'quick-highlight:clear'
-```
-
 * vim-mode-plus user
 ```coffeescript
 'atom-text-editor.vim-mode-plus.normal-mode, atom-text-editor.vim-mode-plus.visual-mode':
-  'space m': 'quick-highlight:toggle'
+  'space m': 'vim-mode-plus-user:quick-highlight-word'
   'space M': 'quick-highlight:clear'
   'g m': 'vim-mode-plus-user:quick-highlight'
 ```
@@ -53,28 +49,6 @@ atom-text-editor .quick-highlight.box-selection .region {
   border-width: 1px;
   background-color: transparent;
   border-color: @syntax-text-color;
-}
-
-// For manual-highlight(0 to 7) color
-//===================================
-// Less mixin to make manual-highlight to underlined style
-.quick-highlight-underline(@name) {
-  .quick-highlight.@{name} .region {
-    border-width: 0px;
-    border-radius: 0px;
-    border-bottom-width: 2px;
-    border-bottom-style: solid;
-  }
-}
-
-atom-text-editor {
-  .quick-highlight-underline(box-01);
-  .quick-highlight-underline(box-02);
-  .quick-highlight-underline(box-03);
-  .quick-highlight-underline(box-04);
-  .quick-highlight-underline(box-05);
-  .quick-highlight-underline(box-06);
-  .quick-highlight-underline(box-07);
 }
 ```
 
