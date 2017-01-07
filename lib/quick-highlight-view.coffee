@@ -38,14 +38,14 @@ module.exports =
 
     needSelectionHighlight: (selection) ->
       editorElement = @editor.element
-      scopes = settings.get('highlightSelectionExcludeScopes')
+      excludeScopes = settings.get('highlightSelectionExcludeScopes')
       switch
         when (not settings.get('highlightSelection'))
             , selection.isEmpty()
-            , (scopes.some (scope) -> matchScope(editorElement, scope))
+            , (excludeScopes.some (scope) -> matchScope(editorElement, scope))
             , not selection.getBufferRange().isSingleLine()
             , selection.getText().length < settings.get('highlightSelectionMinimumLength')
-            , /[^\S]/.test(selection.getText())
+            , (not /\S/.test(selection.getText()))
           false
         else
           true
@@ -58,13 +58,9 @@ module.exports =
 
     highlight: (keyword, color) ->
       markerLayer = @editor.addMarkerLayer()
-      decorationOptions = {type: 'highlight', class: "quick-highlight #{color}"}
-      @editor.decorateMarkerLayer(markerLayer, decorationOptions)
-      markerOptions = {invalidate: 'inside'}
-
-      pattern = ///#{_.escapeRegExp(keyword)}///g
-      @editor.scan pattern, ({range}) ->
-        markerLayer.markBufferRange(range, markerOptions)
+      @editor.decorateMarkerLayer(markerLayer, type: 'highlight', class: "quick-highlight #{color}")
+      @editor.scan ///#{_.escapeRegExp(keyword)}///g, ({range}) ->
+        markerLayer.markBufferRange(range, invalidate: 'inside')
       markerLayer
 
     clear: ->
