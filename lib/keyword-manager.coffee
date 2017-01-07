@@ -7,42 +7,31 @@ module.exports =
     activeItem: null
     latestKeyword: null
 
-    onDidAddKeyword: (fn) -> @emitter.on('did-add-keyword', fn)
-    onDidDeleteKeyword: (fn) -> @emitter.on('did-delete-keyword', fn)
-    onDidClearKeyword: (fn) -> @emitter.on('did-clear-keyword', fn)
+    onDidChangeKeyword: (fn) -> @emitter.on('did-change-keyword', fn)
+    emitDidChangeKeyword: -> @emitter.emit('did-change-keyword')
 
     constructor: ->
       @emitter = new Emitter
-      @colorsByKeyword = new Map
+      @reset()
 
-    has: (keyword) ->
-      @colorsByKeyword.has(keyword)
-
-    add: (keyword) ->
-      color = @getNextColor()
-      @colorsByKeyword.set(keyword, color)
-      @latestKeyword = keyword
-      @emitter.emit('did-add-keyword', {keyword, color})
-
-    delete: (keyword) ->
-      @colorsByKeyword.delete(keyword)
-      @emitter.emit('did-delete-keyword', {keyword})
+    reset: ->
+      @keywordToColor = Object.create(null)
+      @colorIndex = -1
 
     toggle: (keyword) ->
-      if @has(keyword)
-        @delete(keyword)
+      if keyword of @keywordToColor
+        delete @keywordToColor[keyword]
       else
-        @add(keyword)
+        @keywordToColor[keyword] = @getNextColor()
+        @latestKeyword = keyword
+      @emitDidChangeKeyword()
 
     clear: ->
-      @colorsByKeyword.clear()
-      @colorIndex = null
-      @emitter.emit('did-clear-keyword')
+      @reset()
+      @emitDidChangeKeyword()
 
     getNextColor: ->
-      @colorIndex ?= -1
       @colorIndex = (@colorIndex + 1) % @colorNumbers.length
       @colorNumbers[@colorIndex]
 
     destroy: ->
-      @clear()

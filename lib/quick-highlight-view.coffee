@@ -10,31 +10,25 @@ settings = require './settings'
 
 module.exports =
   class QuickHighlightView
-    rendered: false
-    manualDecorationStyle: null
 
     constructor: (@editor, {@keywordManager, @statusBarManager}) ->
-      @markerLayersByKeyword = new Map
+      @keywordToMarkerLayer = Object.create(null)
 
       @disposables = new CompositeDisposable
 
       highlightSelection = null
-      @disposables.add settings.observe 'highlightSelectionDelay', (delay) =>
+      updateHighlightSelection = (delay) =>
         highlightSelection = _.debounce(@highlightSelection.bind(this), delay)
 
-      @disposables.add settings.observe 'decorate', (decorationStyle) =>
-        @manualDecorationStyle = decorationStyle
-        @reset()
-
       @disposables.add(
+        settings.observe('highlightSelectionDelay', updateHighlightSelection)
+        settings.observe('decorate', @reset.bind(this))
         @editor.onDidDestroy(@destroy.bind(this))
 
         # Don't pass function directly since we UPDATE highlightSelection on config change
         @editor.onDidChangeSelectionRange(({selection}) -> highlightSelection(selection))
 
-        @keywordManager.onDidAddKeyword(@addHighlight.bind(this))
-        @keywordManager.onDidDeleteKeyword(@deleteHighlight.bind(this))
-        @keywordManager.onDidClearKeyword(@clear.bind(this))
+        @keywordManager.onDidChangeKeyword(@refresh.bind(this))
         @editor.onDidStopChanging(@reset.bind(this))
       )
 
@@ -71,56 +65,50 @@ module.exports =
       markerLayer
 
     addHighlight: ({keyword, color}) ->
-      if not @markerLayersByKeyword.has(keyword)
+      if keyword not of @keywordToMarkerLayer
         if markerLayer = @highlight(keyword, "#{settings.get('decorate')}-#{color}")
-          @markerLayersByKeyword.set(keyword, markerLayer)
-        @updateStatusBarIfNecesssary()
+          @keywordToMarkerLayer[keyword] = markerLayer
 
     deleteHighlight: ({keyword}) ->
-      if @markerLayersByKeyword.has(keyword)
-        @markerLayersByKeyword.get(keyword).destroy()
-        @markerLayersByKeyword.delete(keyword)
-        @updateStatusBarIfNecesssary()
+      if keyword of @keywordToMarkerLayer
+        @keywordToMarkerLayer[keyword].destroy()
+        delete @keywordToMarkerLayer[keyword]
 
     clear: ->
-      @markerLayersByKeyword.forEach (markerLayer) ->
+      for keyword, markerLayer of @keywordToMarkerLayer
         markerLayer.destroy()
-      @markerLayersByKeyword.clear()
+      @keywordToMarkerLayer = Object.create(null)
 
     render: ->
-      {colorsByKeyword} = @keywordManager
-      colorsByKeyword.forEach (color, keyword) =>
+      {keywordToColor} = @keywordManager
+      masterKeywords = _.keys(keywordToColor)
+      currentKeywords = _.keys(@keywordToMarkerLayer)
+      keywordsToAdd = _.without(masterKeywords, currentKeywords...)
+      keywordsToDelete = _.without(currentKeywords, masterKeywords...)
+
+      for keyword in keywordsToDelete
+        @deleteHighlight({keyword})
+
+      for keyword in keywordsToAdd when color = keywordToColor[keyword]
         @addHighlight({keyword, color})
 
     reset: ->
       @clear()
-      @render()
-      @updateStatusBarIfNecesssary()
+      @refresh()
 
     refresh: ->
       isVisible = @editor in getVisibleEditors()
-      if isVisible is @wasVisible
-        @updateStatusBarIfNecesssary()
-        return
-
       if isVisible
         @render()
       else
         @clear()
-
-      @wasVisible = isVisible
       @updateStatusBarIfNecesssary()
-
-    getMarkerCountForKeyword: (keyword) ->
-      if @markerLayersByKeyword.has(keyword)
-        @markerLayersByKeyword.get(keyword).getMarkerCount()
-      else
-        0
 
     updateStatusBarIfNecesssary: ->
       if settings.get('displayCountOnStatusBar') and @editor is atom.workspace.getActiveTextEditor()
         @statusBarManager.clear()
-        count = @getMarkerCountForKeyword(@keywordManager.latestKeyword)
+        keyword = @keywordManager.latestKeyword
+        count = @keywordToMarkerLayer[keyword]?.getMarkerCount() ? 0
         if count > 0
           @statusBarManager.update(count)
 
