@@ -3,8 +3,6 @@
 module.exports =
   class KeywordManager
     colorNumbers: ['01', '02', '03', '04', '05', '06', '07']
-    visibleEditors: null
-    activeItem: null
     latestKeyword: null
 
     onDidChangeKeyword: (fn) -> @emitter.on('did-change-keyword', fn)

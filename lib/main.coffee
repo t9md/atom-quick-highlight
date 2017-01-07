@@ -38,7 +38,7 @@ module.exports =
       @viewByEditor.forEach (view) -> view.refresh()
 
   deactivate: ->
-    @keywordManager.clear()
+    @keywordManager.destroy()
     @viewByEditor.forEach (view) -> view.destroy()
     @subscriptions.dispose()
     {@subscriptions} = {}
