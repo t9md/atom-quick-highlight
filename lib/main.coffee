@@ -5,12 +5,6 @@ QuickHighlightView = require './quick-highlight-view'
 KeywordManager = require './keyword-manager'
 StatusBarManager = require './status-bar-manager'
 
-# - Refresh onDidChangeActivePaneItem
-# - But dont't refresh invisible editor
-# - Update statusbar count on activeEditor was changed
-# - Clear marker for invisible editor?
-# - Update only keyword added/remove(No need to refresh whole keywords)
-
 {
   getCursorWord
 } = require './utils'

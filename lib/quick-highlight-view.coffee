@@ -13,6 +13,9 @@ settings = require './settings'
 # - Clear marker for invisible editor?: Decide to skip to avoid clere/re-render.
 # - Update only keyword added/remove: Achived by diffing.
 
+# https://github.com/atom/text-buffer/pull/192
+# Use markerLayer.clear() in future
+
 module.exports =
   class QuickHighlightView
     decorationStyle: null
@@ -44,24 +47,23 @@ module.exports =
       @decorationStyle = newValue
       @reset()
 
-    needSelectionHighlight: (selection) ->
+    needSelectionHighlight: (text) ->
       editorElement = @editor.element
       excludeScopes = settings.get('highlightSelectionExcludeScopes')
       switch
         when (not settings.get('highlightSelection'))
-            , selection.isEmpty()
             , (excludeScopes.some (scope) -> matchScope(editorElement, scope))
-            , not selection.getBufferRange().isSingleLine()
-            , selection.getText().length < settings.get('highlightSelectionMinimumLength')
-            , (not /\S/.test(selection.getText()))
+            , /\n/.test(text)
+            , text.length < settings.get('highlightSelectionMinimumLength')
+            , (not /\S/.test(text))
           false
         else
           true
 
     highlightSelection: (selection) =>
       @markerLayerForSelectionHighlight?.destroy()
-      return unless @needSelectionHighlight(selection)
-      if keyword = selection.getText()
+      keyword = selection.getText()
+      if @needSelectionHighlight(keyword)
         @markerLayerForSelectionHighlight = @highlight(keyword, 'box-selection')
 
     highlight: (keyword, color) ->

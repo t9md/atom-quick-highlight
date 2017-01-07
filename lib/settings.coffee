@@ -41,6 +41,7 @@ module.exports = new Settings 'quick-highlight',
     default: true
   highlightSelectionMinimumLength:
     default: 2
+    minimum: 1
     description: "Minimum length of selection to be highlight"
   highlightSelectionExcludeScopes:
     default: ['vim-mode-plus.visual-mode.blockwise']
