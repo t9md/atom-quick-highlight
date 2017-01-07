@@ -1,3 +1,9 @@
+## 0.7.0:
+- Completely rewritten.
+- No longer refresh every `onDidChangeActivePaneItem`.
+- No longer do tuning to render "only-visible-screen-area". Instead, it create marker/decoration for all matching keyword in editor.
+- Default highlight style is now `underline`
+
 ## 0.6.2
 - Improve: Update selection-highlight style(`box-selection`).
 - Doc: Add TIPS to modify highligth style in README.md.
