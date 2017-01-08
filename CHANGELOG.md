@@ -1,3 +1,6 @@
+## 0.7.1:
+- Improve: Early skip calling highlightSelection to exclude cursor movement from debounce calculation.
+
 ## 0.7.0:
 - Completely rewritten.
 - No longer refresh every `onDidChangeActivePaneItem`.

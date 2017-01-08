@@ -35,7 +35,12 @@ module.exports =
         @editor.onDidDestroy(@destroy)
 
         # Don't pass function directly since we UPDATE highlightSelection on config change
-        @editor.onDidChangeSelectionRange(({selection}) -> highlightSelection(selection))
+        @editor.onDidChangeSelectionRange(({selection}) =>
+          if selection.isEmpty()
+            @clearSelectionHighlight()
+          else
+            highlightSelection(selection)
+         )
 
         atom.workspace.onDidChangeActivePaneItem(@refresh)
         @keywordManager.onDidChangeKeyword(@refresh)
@@ -61,10 +66,13 @@ module.exports =
           true
 
     highlightSelection: (selection) =>
-      @markerLayerForSelectionHighlight?.destroy()
       keyword = selection.getText()
       if @needSelectionHighlight(keyword)
         @markerLayerForSelectionHighlight = @highlight(keyword, 'box-selection')
+
+    clearSelectionHighlight: ->
+      @markerLayerForSelectionHighlight?.destroy()
+      @markerLayerForSelectionHighlight = null
 
     highlight: (keyword, color) ->
       markerLayer = @editor.addMarkerLayer()
@@ -120,5 +128,5 @@ module.exports =
 
     destroy: =>
       @clear()
-      @markerLayerForSelectionHighlight?.destroy()
+      @clearSelectionHighlight()
       @disposables.dispose()
