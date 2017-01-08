@@ -9,7 +9,7 @@
 
 ## 0.6.2
 - Improve: Update selection-highlight style(`box-selection`).
-- Doc: Add TIPS to modify highligth style in README.md.
+- Doc: Add TIPS to modify highlight style in README.md.
 
 ## 0.6.1
 - Set `z-index` for box highlight to win selection marker.
@@ -51,7 +51,7 @@
 - [FIX] Deprecation waring from Atom v1.1.0.
 
 ## 0.3.2 - Add spec
-- More spec coverage: statusbar indicator.
+- More spec coverage: status-bar indicator.
 - Improve default color. now change color based on @syntax-background-color
 
 ## 0.3.1 - Add spec
