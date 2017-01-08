@@ -11,9 +11,6 @@ getDecorations = (editor) ->
       decorations.push(decoration)
   decorations
 
-setConfig = (name, value) ->
-  atom.config.set("quick-highlight.#{name}", value)
-
 ensureDecorations = (editor, options) ->
   decorations = getDecorations(editor)
   groupedDecoration = _.groupBy decorations, (decoration) ->
@@ -30,15 +27,14 @@ ensureDecorations = (editor, options) ->
 # Main
 # -------------------------
 describe "quick-highlight", ->
-  [editor, editorContent, editorElement, main, workspaceElement, pathSample1, pathSample2] = []
+  [editor, editorContent, editorElement, main] = []
 
   dispatchCommand = (command, {element}={}) ->
     element ?= editorElement
     atom.commands.dispatch(element, command)
 
   beforeEach ->
-    workspaceElement = atom.views.getView(atom.workspace)
-    jasmine.attachToDOM(workspaceElement)
+    jasmine.attachToDOM(atom.views.getView(atom.workspace))
 
     editorContent = """
       orange
@@ -140,7 +136,7 @@ describe "quick-highlight", ->
       expect(getDecorations(editor)).toHaveLength(0)
 
     it "won't highlight selectedText length is less than highlightSelectionMinimumLength", ->
-      setConfig('highlightSelectionMinimumLength', 3)
+      atom.config.set("quick-highlight.highlightSelectionMinimumLength", 3)
       dispatchCommand('core:select-right')
       advanceClock(150)
       expect(editor.getSelectedText()).toBe "o"
@@ -169,7 +165,7 @@ describe "quick-highlight", ->
       expect(getDecorations(editor)).toHaveLength 0
 
     it "won't highlight when highlightSelection is disabled", ->
-      setConfig('highlightSelection', false)
+      atom.config.set('quick-highlight.highlightSelection', false)
       dispatchCommand('editor:select-word')
       advanceClock(150)
       expect(editor.getSelectedText()).toBe "orange"
@@ -177,7 +173,7 @@ describe "quick-highlight", ->
 
     describe "highlightSelectionExcludeScopes", ->
       beforeEach ->
-        setConfig('highlightSelectionExcludeScopes', [
+        atom.config.set('quick-highlight.highlightSelectionExcludeScopes', [
             'foo.bar',
             'hoge',
           ])
@@ -198,7 +194,7 @@ describe "quick-highlight", ->
 
     describe "highlightSelectionDelay", ->
       beforeEach ->
-        setConfig('highlightSelectionDelay', 300)
+        atom.config.set('quick-highlight.highlightSelectionDelay', 300)
 
       it "highlight selection after specified delay", ->
         dispatchCommand('editor:select-word')
@@ -225,7 +221,7 @@ describe "quick-highlight", ->
         waitsFor -> main.statusBarManager.tile?
 
         runs ->
-          container = workspaceElement.querySelector('#status-bar-quick-highlight')
+          container = atom.views.getView(atom.workspace).querySelector('#status-bar-quick-highlight')
           span = container.querySelector('span')
 
       it 'display latest highlighted count on statusbar', ->
