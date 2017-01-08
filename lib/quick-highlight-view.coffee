@@ -39,6 +39,7 @@ module.exports =
           if selection.isEmpty()
             @clearSelectionHighlight()
           else
+            @clearSelectionHighlight()
             highlightSelection(selection)
          )
 
