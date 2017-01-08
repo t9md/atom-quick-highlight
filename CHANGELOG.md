@@ -1,4 +1,4 @@
-## 0.7.1:
+## 0.7.2:
 - Improve: Early skip calling highlightSelection to exclude cursor movement from debounce calculation.
 
 ## 0.7.0:
