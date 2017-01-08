@@ -1,4 +1,4 @@
-{CompositeDisposable, Disposable, Emitter, Range} = require 'atom'
+{CompositeDisposable, Disposable, Emitter} = require 'atom'
 _ = require 'underscore-plus'
 settings = require './settings'
 QuickHighlightView = require './quick-highlight-view'
