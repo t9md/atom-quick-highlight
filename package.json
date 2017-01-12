@@ -1,7 +1,7 @@
 {
   "name": "quick-highlight",
   "main": "./lib/main",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "Highlight text quickly.",
   "repository": "https://github.com/t9md/atom-quick-highlight",
   "license": "MIT",
@@ -15,7 +15,8 @@
         "1.0.0": "provideQuickHighlight"
       }
     }
-   }, "consumedServices": {
+  },
+  "consumedServices": {
     "status-bar": {
       "versions": {
         "^1.0.0": "consumeStatusBar"
