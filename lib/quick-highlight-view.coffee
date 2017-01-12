@@ -20,7 +20,7 @@ module.exports =
   class QuickHighlightView
     decorationStyle: null
 
-    constructor: (@editor, {@keywordManager, @statusBarManager}) ->
+    constructor: (@editor, {@keywordManager, @statusBarManager, @emitter}) ->
       @keywordToMarkerLayer = Object.create(null)
 
       @disposables = new CompositeDisposable
@@ -80,6 +80,9 @@ module.exports =
       @editor.decorateMarkerLayer(markerLayer, type: 'highlight', class: "quick-highlight #{color}")
       @editor.scan ///#{_.escapeRegExp(keyword)}///g, ({range}) ->
         markerLayer.markBufferRange(range, invalidate: 'inside')
+      if markerLayer.getMarkerCount() > 0
+        markers = markerLayer.getMarkers()
+        @emitter.emit('did-change-highlight', {@editor, markers, color})
       markerLayer
 
     getDiff: ->

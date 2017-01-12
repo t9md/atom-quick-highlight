@@ -8,7 +8,14 @@
   "engines": {
     "atom": "^1.13.0-beta1"
   },
-  "consumedServices": {
+  "providedServices": {
+    "quick-highlight": {
+      "description": "quick-highlight events",
+      "versions": {
+        "1.0.0": "provideQuickHighlight"
+      }
+    }
+   }, "consumedServices": {
     "status-bar": {
       "versions": {
         "^1.0.0": "consumeStatusBar"
