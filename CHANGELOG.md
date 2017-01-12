@@ -1,5 +1,6 @@
-## WIP:
+## 0.8.0:
 - Fix: Avoid flickering selection highlightSelection in `vim-mode-plus`.
+- New: Add service to integrate `minimap`
 
 ## 0.7.2:
 - Improve: Early skip calling highlightSelection to exclude cursor movement from debounce calculation.
