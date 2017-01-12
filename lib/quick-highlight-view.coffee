@@ -39,7 +39,6 @@ module.exports =
           if selection.isEmpty()
             @clearSelectionHighlight()
           else
-            @clearSelectionHighlight()
             highlightSelection(selection)
          )
 
@@ -67,6 +66,7 @@ module.exports =
           true
 
     highlightSelection: (selection) =>
+      @clearSelectionHighlight()
       keyword = selection.getText()
       if @needSelectionHighlight(keyword)
         @markerLayerForSelectionHighlight = @highlight(keyword, 'box-selection')

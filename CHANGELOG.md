@@ -1,3 +1,6 @@
+## WIP:
+- Fix: Avoid flickering selection highlightSelection in `vim-mode-plus`.
+
 ## 0.7.2:
 - Improve: Early skip calling highlightSelection to exclude cursor movement from debounce calculation.
 
