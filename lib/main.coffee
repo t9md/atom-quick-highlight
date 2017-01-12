@@ -25,7 +25,7 @@ module.exports =
       'quick-highlight:clear': => @keywordManager.clear()
 
     @subscriptions.add atom.workspace.observeTextEditors (editor) =>
-      view = new QuickHighlightView(editor, {@keywordManager, @statusBarManager})
+      view = new QuickHighlightView(editor, {@keywordManager, @statusBarManager, @emitter})
       @viewByEditor.set(editor, view)
 
   deactivate: ->
@@ -37,6 +37,12 @@ module.exports =
   toggle: (editor, keyword) ->
     keyword ?= editor.getSelectedText() or getCursorWord(editor)
     @keywordManager.toggle(keyword)
+
+  onDidChangeHighlight: (fn) ->
+    @emitter.on('did-change-highlight', fn)
+
+  provideQuickHighlight: ->
+    onDidChangeHighlight: @onDidChangeHighlight.bind(this)
 
   consumeStatusBar: (statusBar) ->
     @statusBarManager.initialize(statusBar)
