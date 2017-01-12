@@ -19,16 +19,16 @@
   .quick-highlight.@{name} .region {
     .round-box;
     .color(border-color, @color);
-    z-index: 1;
   }
 }
 
+// Selection highlight
+@sbase: @syntax-result-marker-color;
 .box(@name) {
   .quick-highlight.@{name} .region {
     .round-box;
     border-width: 0px;
-    z-index: 2147483647;
-    background-color: @syntax-result-marker-color;
+    background-color: hsla(hue(@sbase), saturation(@sbase), lightness(@sbase), 0.3);
   }
 }
 
@@ -45,7 +45,6 @@
     border-width: 0px;
     border-bottom-width: 2px;
     border-style: solid;
-    z-index: 1;
   }
 }
 

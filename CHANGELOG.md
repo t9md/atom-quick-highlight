@@ -1,3 +1,8 @@
+## 0.8.1:
+- Fix: No longer set `z-index` of all quick-highlight decoration to avoid covering underlying text.
+  - If you want to tweak `z-index`, see example put in `README.md`
+- Improve: Use better transparent color calculation for selection highlight background color. #16
+
 ## 0.8.0:
 - Fix: Avoid flickering selection highlightSelection in `vim-mode-plus`.
 - New: Add service to integrate `minimap`

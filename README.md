@@ -50,6 +50,26 @@ atom-text-editor .quick-highlight.box-selection .region {
   background-color: transparent;
   border-color: @syntax-text-color;
 }
+
+// Make underline manual highlight prioritized(come front) over other highlight
+//=======================
+// Mixin to set z-index of quick-highlight manual color
+.quick-highlight-z-index(@name, @value) {
+  .quick-highlight.@{name} .region {
+    z-index: @value;
+  }
+}
+
+// quick-highlight use 0 to 7 color
+//  for box style, use box-01 to box-07
+//  for highlight style, use highlight-01 to highlight-07
+.quick-highlight-z-index(underline-01, 1);
+.quick-highlight-z-index(underline-02, 1);
+.quick-highlight-z-index(underline-03, 1);
+.quick-highlight-z-index(underline-04, 1);
+.quick-highlight-z-index(underline-05, 1);
+.quick-highlight-z-index(underline-06, 1);
+.quick-highlight-z-index(underline-07, 1);
 ```
 
 ## vim-mode-plus operator
