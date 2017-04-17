@@ -49,6 +49,7 @@ module.exports =
 
   consumeStatusBar: (statusBar) ->
     @statusBarManager.initialize(statusBar)
+    @statusBarManager.attach()
     @subscriptions.add(new Disposable => @statusBarManager.detach())
 
   initRegistries: (Base)->
