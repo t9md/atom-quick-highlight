@@ -75,12 +75,10 @@ module.exports =
       registries ?= @initRegistries(Base)
       registries[name]
 
-    @subscriptions.add registerCommandFromSpec
-      name: 'QuickHighlight'
-      commandPrefix: 'vim-mode-plus-user'
-      getClass: getClass
+    commandPrefix = 'vim-mode-plus-user'
+    spec = {commandPrefix, getClass}
 
-    @subscriptions.add registerCommandFromSpec
-      name: 'QuickHighlightWord'
-      commandPrefix: 'vim-mode-plus-user'
-      getClass: getClass
+    @subscriptions.add(
+      registerCommandFromSpec('QuickHighlight', spec),
+      registerCommandFromSpec('QuickHighlightWord', spec)
+    )
