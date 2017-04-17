@@ -2,10 +2,13 @@ _ = require 'underscore-plus'
 {CompositeDisposable} = require 'atom'
 settings = require './settings'
 
-{
-  getVisibleEditors
-  matchScope
-} = require './utils'
+matchScope = (editorElement, scope) ->
+  containsCount = 0
+  classNames = scope.split('.')
+  for className in classNames
+    containsCount += 1 if editorElement.classList.contains(className)
+
+  containsCount is classNames.length
 
 # - Refresh onDidChangeActivePaneItem
 # - But dont't refresh invisible editor
@@ -15,7 +18,6 @@ settings = require './settings'
 
 # https://github.com/atom/text-buffer/pull/192
 # Use markerLayer.clear() in future
-
 module.exports =
   class QuickHighlightView
     decorationStyle: null
@@ -116,7 +118,11 @@ module.exports =
       @refresh()
 
     refresh: =>
-      return unless @editor in getVisibleEditors()
+      visibleEditors = atom.workspace.getPanes()
+        .map (pane) -> pane.getActiveEditor()
+        .filter (editor) -> editor?
+
+      return unless @editor in visibleEditors
 
       if diff = @getDiff()
         @render(diff)

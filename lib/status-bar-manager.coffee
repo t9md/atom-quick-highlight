@@ -15,6 +15,7 @@ class StatusBarManager
   initialize: (@statusBar) ->
 
   update: (count) ->
+    @tile ?= @attach()
     @span.className = atom.config.get('quick-highlight.countDisplayStyles')
     @span.textContent = count
     @element.style.display = 'inline-block'
@@ -23,12 +24,10 @@ class StatusBarManager
     @element.style.display = 'none'
 
   attach: ->
-    displayPosition = atom.config.get 'quick-highlight.countDisplayPosition'
-    displayPriority = atom.config.get 'quick-highlight.countDisplayPriority'
+    displayPosition = atom.config.get('quick-highlight.countDisplayPosition')
+    displayPriority = atom.config.get('quick-highlight.countDisplayPriority')
 
-    @tile = @statusBar["add#{displayPosition}Tile"]
-      item: @container
-      priority: displayPriority
+    return @statusBar["add#{displayPosition}Tile"](item: @container, priority: displayPriority)
 
   detach: ->
-    @tile.destroy()
+    @tile?.destroy()
