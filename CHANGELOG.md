@@ -1,3 +1,6 @@
+## 0.9.0:
+- Reduce activation time for `vim-mode-plus` was activated by new `registerCommandFromSpec` service.
+
 ## 0.8.1:
 - Fix: No longer set `z-index` of all quick-highlight decoration to avoid covering underlying text.
   - If you want to tweak `z-index`, see example put in `README.md`
