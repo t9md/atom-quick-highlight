@@ -23,12 +23,10 @@ class StatusBarManager
     @element.style.display = 'none'
 
   attach: ->
-    displayPosition = atom.config.get 'quick-highlight.countDisplayPosition'
-    displayPriority = atom.config.get 'quick-highlight.countDisplayPriority'
+    displayPosition = atom.config.get('quick-highlight.countDisplayPosition')
+    displayPriority = atom.config.get('quick-highlight.countDisplayPriority')
 
-    @tile = @statusBar["add#{displayPosition}Tile"]
-      item: @container
-      priority: displayPriority
+    @tile = @statusBar["add#{displayPosition}Tile"](item: @container, priority: displayPriority)
 
   detach: ->
     @tile.destroy()

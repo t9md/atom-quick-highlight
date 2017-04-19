@@ -1,13 +1,8 @@
 {CompositeDisposable, Disposable, Emitter} = require 'atom'
-_ = require 'underscore-plus'
 settings = require './settings'
 QuickHighlightView = require './quick-highlight-view'
 KeywordManager = require './keyword-manager'
 StatusBarManager = require './status-bar-manager'
-
-{
-  getCursorWord
-} = require './utils'
 
 module.exports =
   config: settings.config
@@ -34,8 +29,16 @@ module.exports =
     @subscriptions.dispose()
     @subscriptions = null
 
+  getCursorWord: (editor) ->
+    selection = editor.getLastSelection()
+    cursorPosition = selection.cursor.getBufferPosition()
+    selection.selectWord()
+    word = selection.getText()
+    selection.cursor.setBufferPosition(cursorPosition)
+    word
+
   toggle: (editor, keyword) ->
-    keyword ?= editor.getSelectedText() or getCursorWord(editor)
+    keyword ?= editor.getSelectedText() or @getCursorWord(editor)
     @keywordManager.toggle(keyword)
 
   onDidChangeHighlight: (fn) ->
@@ -49,10 +52,9 @@ module.exports =
     @statusBarManager.attach()
     @subscriptions.add(new Disposable => @statusBarManager.detach())
 
-  consumeVim: ({Base}) ->
+  initRegistries: (Base)->
     toggle = @toggle.bind(this)
     class QuickHighlight extends Base.getClass('Operator')
-      @commandPrefix: 'vim-mode-plus-user'
       flashTarget: false
       stayAtSamePosition: true
 
@@ -62,7 +64,21 @@ module.exports =
     class QuickHighlightWord extends QuickHighlight
       target: "InnerWord"
 
+    registries = {}
+    for klass in [QuickHighlight, QuickHighlightWord]
+      registries[klass.name] = klass
+    registries
+
+  consumeVim: ({Base, registerCommandFromSpec}) ->
+    registries = null
+    getClass = (name) =>
+      registries ?= @initRegistries(Base)
+      registries[name]
+
+    commandPrefix = 'vim-mode-plus-user'
+    spec = {commandPrefix, getClass}
+
     @subscriptions.add(
-      QuickHighlight.registerCommand()
-      QuickHighlightWord.registerCommand()
+      registerCommandFromSpec('QuickHighlight', spec),
+      registerCommandFromSpec('QuickHighlightWord', spec)
     )
