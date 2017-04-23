@@ -29,4 +29,4 @@ class StatusBarManager
     @tile = @statusBar["add#{displayPosition}Tile"](item: @container, priority: displayPriority)
 
   detach: ->
-    @tile.destroy()
+    @tile?.destroy()

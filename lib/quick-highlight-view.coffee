@@ -1,6 +1,5 @@
 _ = require 'underscore-plus'
 {CompositeDisposable} = require 'atom'
-settings = require './settings'
 
 matchScope = (editorElement, scope) ->
   containsCount = 0
@@ -15,128 +14,128 @@ matchScope = (editorElement, scope) ->
 # - Update statusbar count on activeEditor was changed
 # - Clear marker for invisible editor?: Decide to skip to avoid clere/re-render.
 # - Update only keyword added/remove: Achived by diffing.
-
-# https://github.com/atom/text-buffer/pull/192
-# Use markerLayer.clear() in future
 module.exports =
-  class QuickHighlightView
-    decorationStyle: null
+class QuickHighlightView
+  decorationStyle: null
 
-    constructor: (@editor, {@keywordManager, @statusBarManager, @emitter}) ->
-      @keywordToMarkerLayer = Object.create(null)
+  getConfig: (name) ->
+    atom.config.get("quick-highlight.#{name}")
 
-      @disposables = new CompositeDisposable
+  constructor: (@editor, {@keywordManager, @statusBarManager, @emitter}) ->
+    @keywordToMarkerLayer = Object.create(null)
 
-      highlightSelection = null
-      updateHighlightSelection = (delay) =>
-        highlightSelection = _.debounce(@highlightSelection, delay)
+    @disposables = new CompositeDisposable
 
-      @disposables.add(
-        settings.observe('highlightSelectionDelay', updateHighlightSelection)
-        settings.observe('decorate', @observeDecorationStyle)
-        @editor.onDidDestroy(@destroy)
+    highlightSelection = null
+    updateHighlightSelection = (delay) =>
+      highlightSelection = _.debounce(@highlightSelection, delay)
 
-        # Don't pass function directly since we UPDATE highlightSelection on config change
-        @editor.onDidChangeSelectionRange(({selection}) =>
-          if selection.isEmpty()
-            @clearSelectionHighlight()
-          else
-            highlightSelection(selection)
-         )
+    @disposables.add(
+      atom.config.observe('quick-highlight.highlightSelectionDelay', updateHighlightSelection)
+      atom.config.observe('quick-highlight.decorate', @observeDecorationStyle)
+      @editor.onDidDestroy(@destroy)
 
-        atom.workspace.onDidChangeActivePaneItem(@refresh)
-        @keywordManager.onDidChangeKeyword(@refresh)
-        @keywordManager.onDidClearKeyword(@clear)
-        @editor.onDidStopChanging(@reset)
-      )
-
-    observeDecorationStyle: (newValue) =>
-      @decorationStyle = newValue
-      @reset()
-
-    needSelectionHighlight: (text) ->
-      editorElement = @editor.element
-      excludeScopes = settings.get('highlightSelectionExcludeScopes')
-      switch
-        when (not settings.get('highlightSelection'))
-            , (excludeScopes.some (scope) -> matchScope(editorElement, scope))
-            , /\n/.test(text)
-            , text.length < settings.get('highlightSelectionMinimumLength')
-            , (not /\S/.test(text))
-          false
+      # Don't pass function directly since we UPDATE highlightSelection on config change
+      @editor.onDidChangeSelectionRange(({selection}) =>
+        if selection.isEmpty()
+          @clearSelectionHighlight()
         else
-          true
+          highlightSelection(selection)
+       )
 
-    highlightSelection: (selection) =>
-      @clearSelectionHighlight()
-      keyword = selection.getText()
-      if @needSelectionHighlight(keyword)
-        @markerLayerForSelectionHighlight = @highlight(keyword, 'box-selection')
+      atom.workspace.onDidChangeActivePaneItem(@refresh)
+      @keywordManager.onDidChangeKeyword(@refresh)
+      @keywordManager.onDidClearKeyword(@clear)
+      @editor.onDidStopChanging(@reset)
+    )
 
-    clearSelectionHighlight: ->
-      @markerLayerForSelectionHighlight?.destroy()
-      @markerLayerForSelectionHighlight = null
+  observeDecorationStyle: (newValue) =>
+    @decorationStyle = newValue
+    @reset()
 
-    highlight: (keyword, color) ->
-      markerLayer = @editor.addMarkerLayer()
-      @editor.decorateMarkerLayer(markerLayer, type: 'highlight', class: "quick-highlight #{color}")
-      @editor.scan ///#{_.escapeRegExp(keyword)}///g, ({range}) ->
-        markerLayer.markBufferRange(range, invalidate: 'inside')
-      if markerLayer.getMarkerCount() > 0
-        markers = markerLayer.getMarkers()
-        @emitter.emit('did-change-highlight', {@editor, markers, color})
-      markerLayer
-
-    getDiff: ->
-      masterKeywords = _.keys(@keywordManager.keywordToColor)
-      currentKeywords = _.keys(@keywordToMarkerLayer)
-      newKeywords = _.without(masterKeywords, currentKeywords...)
-      oldKeywords = _.without(currentKeywords, masterKeywords...)
-      if newKeywords.length or oldKeywords.length
-        {newKeywords, oldKeywords}
+  needSelectionHighlight: (text) ->
+    editorElement = @editor.element
+    excludeScopes = @getConfig('highlightSelectionExcludeScopes')
+    switch
+      when (not @getConfig('highlightSelection'))
+          , (excludeScopes.some (scope) -> matchScope(editorElement, scope))
+          , /\n/.test(text)
+          , text.length < @getConfig('highlightSelectionMinimumLength')
+          , (not /\S/.test(text))
+        false
       else
-        null
+        true
 
-    render: ({newKeywords, oldKeywords}) ->
-      # Delete
-      for keyword in oldKeywords
-        @keywordToMarkerLayer[keyword].destroy()
-        delete @keywordToMarkerLayer[keyword]
+  highlightSelection: (selection) =>
+    @clearSelectionHighlight()
+    keyword = selection.getText()
+    if @needSelectionHighlight(keyword)
+      @markerLayerForSelectionHighlight = @highlight(keyword, 'box-selection')
 
-      # Add
-      {keywordToColor} = @keywordManager
-      for keyword in newKeywords when color = keywordToColor[keyword]
-        @keywordToMarkerLayer[keyword] = @highlight(keyword, "#{@decorationStyle}-#{color}")
+  clearSelectionHighlight: ->
+    @markerLayerForSelectionHighlight?.destroy()
+    @markerLayerForSelectionHighlight = null
 
-    clear: =>
-      for keyword, markerLayer of @keywordToMarkerLayer
-        markerLayer.destroy()
-      @keywordToMarkerLayer = Object.create(null)
+  highlight: (keyword, color) ->
+    markerLayer = @editor.addMarkerLayer()
+    @editor.decorateMarkerLayer(markerLayer, type: 'highlight', class: "quick-highlight #{color}")
+    @editor.scan ///#{_.escapeRegExp(keyword)}///g, ({range}) ->
+      markerLayer.markBufferRange(range, invalidate: 'inside')
+    if markerLayer.getMarkerCount() > 0
+      markers = markerLayer.getMarkers()
+      @emitter.emit('did-change-highlight', {@editor, markers, color})
+    markerLayer
 
-    reset: =>
-      @clear()
-      @refresh()
+  getDiff: ->
+    masterKeywords = _.keys(@keywordManager.keywordToColor)
+    currentKeywords = _.keys(@keywordToMarkerLayer)
+    newKeywords = _.without(masterKeywords, currentKeywords...)
+    oldKeywords = _.without(currentKeywords, masterKeywords...)
+    if newKeywords.length or oldKeywords.length
+      {newKeywords, oldKeywords}
+    else
+      null
 
-    refresh: =>
-      visibleEditors = atom.workspace.getPanes()
-        .map (pane) -> pane.getActiveEditor()
-        .filter (editor) -> editor?
+  render: ({newKeywords, oldKeywords}) ->
+    # Delete
+    for keyword in oldKeywords
+      @keywordToMarkerLayer[keyword].destroy()
+      delete @keywordToMarkerLayer[keyword]
 
-      return unless @editor in visibleEditors
+    # Add
+    {keywordToColor} = @keywordManager
+    for keyword in newKeywords when color = keywordToColor[keyword]
+      @keywordToMarkerLayer[keyword] = @highlight(keyword, "#{@decorationStyle}-#{color}")
 
-      if diff = @getDiff()
-        @render(diff)
-      @updateStatusBarIfNecesssary()
+  clear: =>
+    for keyword, markerLayer of @keywordToMarkerLayer
+      markerLayer.destroy()
+    @keywordToMarkerLayer = Object.create(null)
 
-    updateStatusBarIfNecesssary: ->
-      if settings.get('displayCountOnStatusBar') and @editor is atom.workspace.getActiveTextEditor()
-        @statusBarManager.clear()
-        keyword = @keywordManager.latestKeyword
-        count = @keywordToMarkerLayer[keyword]?.getMarkerCount() ? 0
-        if count > 0
-          @statusBarManager.update(count)
+  reset: =>
+    @clear()
+    @refresh()
 
-    destroy: =>
-      @clear()
-      @clearSelectionHighlight()
-      @disposables.dispose()
+  refresh: =>
+    visibleEditors = atom.workspace.getPanes()
+      .map (pane) -> pane.getActiveEditor()
+      .filter (editor) -> editor?
+
+    return unless @editor in visibleEditors
+
+    if diff = @getDiff()
+      @render(diff)
+    @updateStatusBarIfNecesssary()
+
+  updateStatusBarIfNecesssary: ->
+    if @getConfig('displayCountOnStatusBar') and @editor is atom.workspace.getActiveTextEditor()
+      @statusBarManager.clear()
+      keyword = @keywordManager.latestKeyword
+      count = @keywordToMarkerLayer[keyword]?.getMarkerCount() ? 0
+      if count > 0
+        @statusBarManager.update(count)
+
+  destroy: =>
+    @clear()
+    @clearSelectionHighlight()
+    @disposables.dispose()
