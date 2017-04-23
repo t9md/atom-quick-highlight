@@ -14,8 +14,8 @@ CONFIG =
     order: 1
     type: 'boolean'
     default: true
+    title: "Highlight Selection"
     description: """
-    [Require Restart]<br>
     This value is checked on startup.<br>
     When disabled quick-highlight delay startup IO( files to load by require ) for faster activation<br>
     """
@@ -64,21 +64,30 @@ module.exports =
     @subscriptions = new CompositeDisposable
     @emitter = new Emitter
     @viewByEditor = new Map
-    toggle = @toggle.bind(this)
     @subscriptions.add atom.commands.add 'atom-text-editor:not([mini])',
-      'quick-highlight:toggle': -> toggle(@getModel())
+      'quick-highlight:toggle': => @toggle()
       'quick-highlight:clear': => @keywordManager?.clear()
 
-    if atom.config.get('quick-highlight.highlightSelection')
-      @editorSubscription = @observeTextEditors()
+    @subscriptions.add atom.config.observe 'quick-highlight.highlightSelection', (value) =>
+      if value
+        @initQuickHighlightIfNeeded()
 
   deactivate: ->
     @keywordManager?.destroy()
+    @keywordManager = null
+
     @viewByEditor.forEach (view) -> view.destroy()
+    @viewByEditor.clear()
+    @viewByEditor = null
+
     @subscriptions.dispose()
+    @subscriptions = null
+
     @editorSubscription?.dispose()
-    @statusBarManager.detach()
-    [@keywordManager, @subscriptions] = []
+    @editorSubscription = null
+
+    @statusBarManager?.detach()
+    @statusBarManager = null
 
   getCursorWord: (editor) ->
     selection = editor.getLastSelection()
@@ -88,10 +97,12 @@ module.exports =
     selection.cursor.setBufferPosition(cursorPosition)
     word
 
-  observeTextEditors: ->
-    QuickHighlightView ?= require './quick-highlight-view'
-    KeywordManager ?= require './keyword-manager'
-    StatusBarManager ?= require './status-bar-manager'
+  initQuickHighlightIfNeeded: ->
+    return if @editorSubscription?
+
+    QuickHighlightView = require './quick-highlight-view'
+    KeywordManager = require './keyword-manager'
+    StatusBarManager = require './status-bar-manager'
 
     @keywordManager = new KeywordManager
     @statusBarManager = new StatusBarManager
@@ -99,7 +110,7 @@ module.exports =
       @statusBarManager.initialize(@statusBar)
       @statusBarManager.attach()
 
-    atom.workspace.observeTextEditors (editor) =>
+    @editorSubscription = atom.workspace.observeTextEditors (editor) =>
       options = {
         editor: editor
         keywordManager: @keywordManager
@@ -109,9 +120,10 @@ module.exports =
       view = new QuickHighlightView(editor, options)
       @viewByEditor.set(editor, view)
 
-  toggle: (editor, keyword) ->
+  toggle: (keyword) ->
+    editor = atom.workspace.getActiveTextEditor()
     keyword ?= editor.getSelectedText() or @getCursorWord(editor)
-    @editorSubscription ?= @observeTextEditors()
+    @initQuickHighlightIfNeeded()
     @keywordManager.toggle(keyword)
 
   onDidChangeHighlight: (fn) ->
@@ -125,33 +137,29 @@ module.exports =
       @statusBarManager.initialize(@statusBar)
       @statusBarManager.attach()
 
-  initRegistries: (Base)->
+  initVimClassRegistry: (Base)->
     toggle = @toggle.bind(this)
     class QuickHighlight extends Base.getClass('Operator')
       flashTarget: false
       stayAtSamePosition: true
 
       mutateSelection: (selection) ->
-        toggle(@editor, selection.getText())
+        toggle(selection.getText())
 
     class QuickHighlightWord extends QuickHighlight
       target: "InnerWord"
 
-    registries = {}
-    for klass in [QuickHighlight, QuickHighlightWord]
-      registries[klass.name] = klass
-    registries
+    return {QuickHighlight, QuickHighlightWord}
 
   consumeVim: ({Base, registerCommandFromSpec}) ->
-    registries = null
-    getClass = (name) =>
-      registries ?= @initRegistries(Base)
-      registries[name]
-
-    commandPrefix = 'vim-mode-plus-user'
-    spec = {commandPrefix, getClass}
+    classes = null
+    commandSpec =
+      commandPrefix: 'vim-mode-plus-user'
+      getClass: (name) =>
+        classes ?= @initVimClassRegistry(Base)
+        classes[name]
 
     @subscriptions.add(
-      registerCommandFromSpec('QuickHighlight', spec),
-      registerCommandFromSpec('QuickHighlightWord', spec)
+      registerCommandFromSpec('QuickHighlight', commandSpec)
+      registerCommandFromSpec('QuickHighlightWord', commandSpec)
     )
