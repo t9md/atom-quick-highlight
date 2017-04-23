@@ -125,7 +125,7 @@ module.exports =
       @statusBarManager.initialize(@statusBar)
       @statusBarManager.attach()
 
-  initVimClassRegistry: (Base)->
+  initVimClassRegistry: (Base) ->
     toggle = @toggle.bind(this)
     class QuickHighlight extends Base.getClass('Operator')
       flashTarget: false
