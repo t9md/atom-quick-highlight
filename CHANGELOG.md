@@ -1,3 +1,6 @@
+## 0.10.0: WIP
+- Reduce activation time of `quick-highlight` itself by reducing disk-IO on startup.
+
 ## 0.9.0:
 - Reduce activation time for `vim-mode-plus` was activated by new `registerCommandFromSpec` service.
 
