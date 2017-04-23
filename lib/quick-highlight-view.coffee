@@ -1,5 +1,3 @@
-console.log __filename
-
 _ = require 'underscore-plus'
 {CompositeDisposable} = require 'atom'
 

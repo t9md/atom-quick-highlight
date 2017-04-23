@@ -1,7 +1,4 @@
 {CompositeDisposable, Emitter} = require 'atom'
-QuickHighlightView = null
-KeywordManager = null
-StatusBarManager = null
 
 CONFIG =
   decorate:
@@ -15,10 +12,6 @@ CONFIG =
     type: 'boolean'
     default: true
     title: "Highlight Selection"
-    description: """
-    This value is checked on startup.<br>
-    When disabled quick-highlight delay startup IO( files to load by require ) for faster activation<br>
-    """
   highlightSelectionMinimumLength:
     order: 2
     type: 'integer'
@@ -63,7 +56,6 @@ module.exports =
   activate: (state) ->
     @subscriptions = new CompositeDisposable
     @emitter = new Emitter
-    @viewByEditor = new Map
     @subscriptions.add atom.commands.add 'atom-text-editor:not([mini])',
       'quick-highlight:toggle': => @toggle()
       'quick-highlight:clear': => @keywordManager?.clear()
@@ -76,9 +68,10 @@ module.exports =
     @keywordManager?.destroy()
     @keywordManager = null
 
-    @viewByEditor.forEach (view) -> view.destroy()
-    @viewByEditor.clear()
-    @viewByEditor = null
+    if @viewByEditor?
+      @viewByEditor.forEach (view) -> view.destroy()
+      @viewByEditor.clear()
+      @viewByEditor = null
 
     @subscriptions.dispose()
     @subscriptions = null
@@ -104,6 +97,7 @@ module.exports =
     KeywordManager = require './keyword-manager'
     StatusBarManager = require './status-bar-manager'
 
+    @viewByEditor = new Map
     @keywordManager = new KeywordManager
     @statusBarManager = new StatusBarManager
     if @statusBar?
@@ -111,14 +105,8 @@ module.exports =
       @statusBarManager.attach()
 
     @editorSubscription = atom.workspace.observeTextEditors (editor) =>
-      options = {
-        editor: editor
-        keywordManager: @keywordManager
-        statusBarManager: @statusBarManager
-        emitter: @emitter
-      }
-      view = new QuickHighlightView(editor, options)
-      @viewByEditor.set(editor, view)
+      options = {@keywordManager, @statusBarManager, @emitter}
+      @viewByEditor.set(editor, new QuickHighlightView(editor, options))
 
   toggle: (keyword) ->
     editor = atom.workspace.getActiveTextEditor()

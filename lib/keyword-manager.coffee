@@ -1,5 +1,3 @@
-console.log __filename
-
 {Emitter} = require 'atom'
 
 module.exports =
