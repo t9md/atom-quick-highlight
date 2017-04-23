@@ -1,33 +1,84 @@
-{CompositeDisposable, Disposable, Emitter} = require 'atom'
-settings = require './settings'
-QuickHighlightView = require './quick-highlight-view'
-KeywordManager = require './keyword-manager'
-StatusBarManager = require './status-bar-manager'
+{CompositeDisposable, Emitter} = require 'atom'
+QuickHighlightView = null
+KeywordManager = null
+StatusBarManager = null
+
+CONFIG =
+  decorate:
+    order: 0
+    type: 'string'
+    default: 'underline'
+    enum: ['underline', 'box', 'highlight']
+    description: "Decoation style for highlight"
+  highlightSelection:
+    order: 1
+    type: 'boolean'
+    default: true
+    description: """
+    [Require Restart]<br>
+    This value is checked on startup.<br>
+    When disabled quick-highlight delay startup IO( files to load by require ) for faster activation<br>
+    """
+  highlightSelectionMinimumLength:
+    order: 2
+    type: 'integer'
+    default: 2
+    minimum: 1
+    description: "Minimum length of selection to be highlight"
+  highlightSelectionExcludeScopes:
+    order: 3
+    default: ['vim-mode-plus.visual-mode.blockwise']
+    type: 'array'
+    items:
+      type: 'string'
+  highlightSelectionDelay:
+    order: 4
+    type: 'integer'
+    default: 100
+    description: "Delay(ms) before start to highlight selection when selection changed"
+  displayCountOnStatusBar:
+    order: 5
+    type: 'boolean'
+    default: true
+    description: "Show found count on StatusBar"
+  countDisplayPosition:
+    order: 6
+    type: 'string'
+    default: 'Left'
+    enum: ['Left', 'Right']
+  countDisplayPriority:
+    order: 7
+    type: 'integer'
+    default: 120
+    description: "Lower priority get closer position to the edges of the window"
+  countDisplayStyles:
+    order: 8
+    type: 'string'
+    default: 'badge icon icon-location'
+    description: "Style class for count span element. See `styleguide:show`."
 
 module.exports =
-  config: settings.config
+  config: CONFIG
 
   activate: (state) ->
     @subscriptions = new CompositeDisposable
     @emitter = new Emitter
     @viewByEditor = new Map
-    @keywordManager = new KeywordManager
-    @statusBarManager = new StatusBarManager
-
     toggle = @toggle.bind(this)
     @subscriptions.add atom.commands.add 'atom-text-editor:not([mini])',
       'quick-highlight:toggle': -> toggle(@getModel())
-      'quick-highlight:clear': => @keywordManager.clear()
+      'quick-highlight:clear': => @keywordManager?.clear()
 
-    @subscriptions.add atom.workspace.observeTextEditors (editor) =>
-      view = new QuickHighlightView(editor, {@keywordManager, @statusBarManager, @emitter})
-      @viewByEditor.set(editor, view)
+    if atom.config.get('quick-highlight.highlightSelection')
+      @editorSubscription = @observeTextEditors()
 
   deactivate: ->
-    @keywordManager.destroy()
+    @keywordManager?.destroy()
     @viewByEditor.forEach (view) -> view.destroy()
     @subscriptions.dispose()
-    @subscriptions = null
+    @editorSubscription?.dispose()
+    @statusBarManager.detach()
+    [@keywordManager, @subscriptions] = []
 
   getCursorWord: (editor) ->
     selection = editor.getLastSelection()
@@ -37,8 +88,30 @@ module.exports =
     selection.cursor.setBufferPosition(cursorPosition)
     word
 
+  observeTextEditors: ->
+    QuickHighlightView ?= require './quick-highlight-view'
+    KeywordManager ?= require './keyword-manager'
+    StatusBarManager ?= require './status-bar-manager'
+
+    @keywordManager = new KeywordManager
+    @statusBarManager = new StatusBarManager
+    if @statusBar?
+      @statusBarManager.initialize(@statusBar)
+      @statusBarManager.attach()
+
+    atom.workspace.observeTextEditors (editor) =>
+      options = {
+        editor: editor
+        keywordManager: @keywordManager
+        statusBarManager: @statusBarManager
+        emitter: @emitter
+      }
+      view = new QuickHighlightView(editor, options)
+      @viewByEditor.set(editor, view)
+
   toggle: (editor, keyword) ->
     keyword ?= editor.getSelectedText() or @getCursorWord(editor)
+    @editorSubscription ?= @observeTextEditors()
     @keywordManager.toggle(keyword)
 
   onDidChangeHighlight: (fn) ->
@@ -47,10 +120,10 @@ module.exports =
   provideQuickHighlight: ->
     onDidChangeHighlight: @onDidChangeHighlight.bind(this)
 
-  consumeStatusBar: (statusBar) ->
-    @statusBarManager.initialize(statusBar)
-    @statusBarManager.attach()
-    @subscriptions.add(new Disposable => @statusBarManager.detach())
+  consumeStatusBar: (@statusBar) ->
+    if @statusBarManager?
+      @statusBarManager.initialize(@statusBar)
+      @statusBarManager.attach()
 
   initRegistries: (Base)->
     toggle = @toggle.bind(this)

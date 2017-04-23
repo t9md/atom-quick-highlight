@@ -1,6 +1,7 @@
+console.log __filename
+
 _ = require 'underscore-plus'
 {CompositeDisposable} = require 'atom'
-settings = require './settings'
 
 matchScope = (editorElement, scope) ->
   containsCount = 0
@@ -22,6 +23,9 @@ module.exports =
   class QuickHighlightView
     decorationStyle: null
 
+    getConfig: (name) ->
+      atom.config.get("quick-highlight.#{name}")
+
     constructor: (@editor, {@keywordManager, @statusBarManager, @emitter}) ->
       @keywordToMarkerLayer = Object.create(null)
 
@@ -32,8 +36,8 @@ module.exports =
         highlightSelection = _.debounce(@highlightSelection, delay)
 
       @disposables.add(
-        settings.observe('highlightSelectionDelay', updateHighlightSelection)
-        settings.observe('decorate', @observeDecorationStyle)
+        atom.config.observe('quick-highlight.highlightSelectionDelay', updateHighlightSelection)
+        atom.config.observe('quick-highlight.decorate', @observeDecorationStyle)
         @editor.onDidDestroy(@destroy)
 
         # Don't pass function directly since we UPDATE highlightSelection on config change
@@ -56,12 +60,12 @@ module.exports =
 
     needSelectionHighlight: (text) ->
       editorElement = @editor.element
-      excludeScopes = settings.get('highlightSelectionExcludeScopes')
+      excludeScopes = @getConfig('highlightSelectionExcludeScopes')
       switch
-        when (not settings.get('highlightSelection'))
+        when (not @getConfig('highlightSelection'))
             , (excludeScopes.some (scope) -> matchScope(editorElement, scope))
             , /\n/.test(text)
-            , text.length < settings.get('highlightSelectionMinimumLength')
+            , text.length < @getConfig('highlightSelectionMinimumLength')
             , (not /\S/.test(text))
           false
         else
@@ -129,7 +133,7 @@ module.exports =
       @updateStatusBarIfNecesssary()
 
     updateStatusBarIfNecesssary: ->
-      if settings.get('displayCountOnStatusBar') and @editor is atom.workspace.getActiveTextEditor()
+      if @getConfig('displayCountOnStatusBar') and @editor is atom.workspace.getActiveTextEditor()
         @statusBarManager.clear()
         keyword = @keywordManager.latestKeyword
         count = @keywordToMarkerLayer[keyword]?.getMarkerCount() ? 0
