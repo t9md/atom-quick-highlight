@@ -1,4 +1,7 @@
 {CompositeDisposable, Emitter} = require 'atom'
+
+KeywordManager = null
+
 module.exports =
   activate: (state) ->
     @subscriptions = new CompositeDisposable
@@ -9,57 +12,20 @@ module.exports =
 
     @subscriptions.add atom.config.observe 'quick-highlight.highlightSelection', (value) =>
       if value
-        @initQuickHighlightIfNeeded()
+        @getKeywordmanager() # To initialize
 
   deactivate: ->
     @keywordManager?.destroy()
     @keywordManager = null
-
-    if @viewByEditor?
-      @viewByEditor.forEach (view) -> view.destroy()
-      @viewByEditor.clear()
-      @viewByEditor = null
-
     @subscriptions.dispose()
     @subscriptions = null
 
-    @editorSubscription?.dispose()
-    @editorSubscription = null
-
-    @statusBarManager?.detach()
-    @statusBarManager = null
-
-  getCursorWord: (editor) ->
-    selection = editor.getLastSelection()
-    cursorPosition = selection.cursor.getBufferPosition()
-    selection.selectWord()
-    word = selection.getText()
-    selection.cursor.setBufferPosition(cursorPosition)
-    word
-
-  initQuickHighlightIfNeeded: ->
-    return if @editorSubscription?
-
-    QuickHighlightView = require './quick-highlight-view'
-    KeywordManager = require './keyword-manager'
-    StatusBarManager = require './status-bar-manager'
-
-    @viewByEditor = new Map
-    @keywordManager = new KeywordManager
-    @statusBarManager = new StatusBarManager
-    if @statusBar?
-      @statusBarManager.initialize(@statusBar)
-      @statusBarManager.attach()
-
-    @editorSubscription = atom.workspace.observeTextEditors (editor) =>
-      options = {@keywordManager, @statusBarManager, @emitter}
-      @viewByEditor.set(editor, new QuickHighlightView(editor, options))
+  getKeywordmanager: ->
+    KeywordManager ?= require './keyword-manager'
+    @keywordManager ?= new KeywordManager(@emitter, @statusBar)
 
   toggle: (keyword) ->
-    editor = atom.workspace.getActiveTextEditor()
-    keyword ?= editor.getSelectedText() or @getCursorWord(editor)
-    @initQuickHighlightIfNeeded()
-    @keywordManager.toggle(keyword)
+    @getKeywordmanager().toggle(keyword)
 
   onDidChangeHighlight: (fn) ->
     @emitter.on('did-change-highlight', fn)
@@ -68,31 +34,17 @@ module.exports =
     onDidChangeHighlight: @onDidChangeHighlight.bind(this)
 
   consumeStatusBar: (@statusBar) ->
-    if @statusBarManager?
-      @statusBarManager.initialize(@statusBar)
-      @statusBarManager.attach()
-
-  initVimClassRegistry: (Base) ->
-    toggle = @toggle.bind(this)
-    class QuickHighlight extends Base.getClass('Operator')
-      flashTarget: false
-      stayAtSamePosition: true
-
-      mutateSelection: (selection) ->
-        toggle(selection.getText())
-
-    class QuickHighlightWord extends QuickHighlight
-      target: "InnerWord"
-
-    return {QuickHighlight, QuickHighlightWord}
+    if @keywordManager?
+      @keywordManager.statusBarManager.initialize(@statusBar)
+      @keywordManager.statusBarManager.attach()
 
   consumeVim: ({Base, registerCommandFromSpec}) ->
-    classes = null
+    commands = null
     commandSpec =
       commandPrefix: 'vim-mode-plus-user'
       getClass: (name) =>
-        classes ?= @initVimClassRegistry(Base)
-        classes[name]
+        commands ?= require('./load-vmp-commands')(Base, @toggle.bind(this))
+        commands[name]
 
     @subscriptions.add(
       registerCommandFromSpec('QuickHighlight', commandSpec)

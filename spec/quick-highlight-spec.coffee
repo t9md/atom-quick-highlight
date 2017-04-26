@@ -218,7 +218,7 @@ describe "quick-highlight", ->
           """
 
         waitsForPromise -> atom.packages.activatePackage("status-bar")
-        waitsFor -> main.statusBarManager.tile?
+        waitsFor -> main.keywordManager.statusBarManager.tile?
 
         runs ->
           container = atom.views.getView(atom.workspace).querySelector('#status-bar-quick-highlight')
