@@ -1,58 +1,5 @@
 {CompositeDisposable, Emitter} = require 'atom'
-
-CONFIG =
-  decorate:
-    order: 0
-    type: 'string'
-    default: 'underline'
-    enum: ['underline', 'box', 'highlight']
-    description: "Decoation style for highlight"
-  highlightSelection:
-    order: 1
-    type: 'boolean'
-    default: true
-    title: "Highlight Selection"
-  highlightSelectionMinimumLength:
-    order: 2
-    type: 'integer'
-    default: 2
-    minimum: 1
-    description: "Minimum length of selection to be highlight"
-  highlightSelectionExcludeScopes:
-    order: 3
-    default: ['vim-mode-plus.visual-mode.blockwise']
-    type: 'array'
-    items:
-      type: 'string'
-  highlightSelectionDelay:
-    order: 4
-    type: 'integer'
-    default: 100
-    description: "Delay(ms) before start to highlight selection when selection changed"
-  displayCountOnStatusBar:
-    order: 5
-    type: 'boolean'
-    default: true
-    description: "Show found count on StatusBar"
-  countDisplayPosition:
-    order: 6
-    type: 'string'
-    default: 'Left'
-    enum: ['Left', 'Right']
-  countDisplayPriority:
-    order: 7
-    type: 'integer'
-    default: 120
-    description: "Lower priority get closer position to the edges of the window"
-  countDisplayStyles:
-    order: 8
-    type: 'string'
-    default: 'badge icon icon-location'
-    description: "Style class for count span element. See `styleguide:show`."
-
 module.exports =
-  config: CONFIG
-
   activate: (state) ->
     @subscriptions = new CompositeDisposable
     @emitter = new Emitter
