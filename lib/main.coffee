@@ -40,11 +40,11 @@ module.exports =
 
   consumeVim: ({Base, registerCommandFromSpec}) ->
     commands = null
-    commandSpec =
-      commandPrefix: 'vim-mode-plus-user'
-      getClass: (name) =>
-        commands ?= require('./load-vmp-commands')(Base, @toggle.bind(this))
-        commands[name]
+    getClass = (name) =>
+      commands ?= require('./load-vmp-commands')(Base, @toggle.bind(this))
+      commands[name]
+
+    commandSpec = {commandPrefix: 'vim-mode-plus-user', getClass: getClass}
 
     @subscriptions.add(
       registerCommandFromSpec('QuickHighlight', commandSpec)
