@@ -7,7 +7,7 @@ getDecorations = (editor) ->
 
   decorations = []
   for id, decoration of editor.decorationsStateForScreenRowRange(0, editor.getLineCount())
-    if decoration.properties.class.match(pattern)
+    if decoration.properties.class?.match(pattern)
       decorations.push(decoration)
   decorations
 
