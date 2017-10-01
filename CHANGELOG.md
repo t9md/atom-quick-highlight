@@ -1,3 +1,6 @@
+## WIP
+- Maintenance: use babel in vmp bridge command to conform to upstream(vmp) Coffee-to-JS conversion.
+
 ## 0.10.0:
 - Improve: Improve package activation perf by reducing disk-IO on startup.
   - Activation time diff: from 20ms to 5ms in my env.
