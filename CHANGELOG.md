@@ -1,5 +1,7 @@
-## WIP
-- Maintenance: use babel in vmp bridge command to conform to upstream(vmp) Coffee-to-JS conversion.
+## 0.11.0:
+- Maintenance:
+  - Convert Coffee-to-JS
+  - Also make vmp commands compatible with upcoming ES6-class-based-vmp-operations.
 
 ## 0.10.0:
 - Improve: Improve package activation perf by reducing disk-IO on startup.
