@@ -100,9 +100,7 @@
   "dependencies": {
     "underscore-plus": "^1.6.6"
   },
-  "devDependencies": {
-    "prettier": "^1.5.3"
-  },
+  "devDependencies": {},
   "scripts": {
     "test": "apm test",
     "watch": "fswatch -0 spec lib | xargs -0 -n1 -I{} apm test",
