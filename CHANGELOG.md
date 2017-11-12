@@ -1,3 +1,7 @@
+## 0.11.1: WIP
+- Update `registerCommandFromSpec` call to conform to vmp changes.
+  - Detail: https://github.com/t9md/atom-vim-mode-plus/pull/958
+
 ## 0.11.0:
 - Maintenance:
   - Convert Coffee-to-JS
