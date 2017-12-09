@@ -1,3 +1,6 @@
+## 0.12.0:
+- Maintenance: Catchup vmp changes, no longer use service.Base, use getClass instead.
+
 ## 0.11.1:
 - Update `registerCommandFromSpec` call to conform to vmp changes.
   - Detail: https://github.com/t9md/atom-vim-mode-plus/pull/958
