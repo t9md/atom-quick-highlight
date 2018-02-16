@@ -73,7 +73,7 @@
     "countDisplayStyles": {
       "order": 8,
       "type": "string",
-      "default": "badge icon icon-location",
+      "default": "icon icon-location",
       "description": "Style class for count span element. See `styleguide:show`."
     }
   },
