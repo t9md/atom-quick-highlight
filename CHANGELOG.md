@@ -1,8 +1,6 @@
-## 0.14.0:
+## 0.13.0:
 - Improve: `quick-highlight:toggle` now pick cursor word correctly when executed in editor in Dock.
 - Maintenance: Standard linting, format.
-
-## 0.13.0:
 - Style: Change default value for `countDisplayStyles` which is used for statusbar icon style.
   - New: `icon icon-location`
   - Old: `badge icon icon-location`(If you like older style, set this manually)
