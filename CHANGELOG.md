@@ -1,3 +1,8 @@
+## 0.13.0:
+- Style: Change default value for `countDisplayStyles` which is used for statusbar icon style.
+  - New: `icon icon-location`
+  - Old: `badge icon icon-location`(If you like older style, set this manually)
+
 ## 0.12.0:
 - Maintenance: Catchup vmp changes, no longer use service.Base, use getClass instead.
 
